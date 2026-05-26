@@ -1,0 +1,32 @@
+# Python virtual environments
+venv/
+ENV/
+env/
+.venv/
+bin/
+lib/
+include/
+
+# Python caching
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Local databases & configurations
+instance/
+.env
+.env.local
+.env.*.local
+
+# IDE configurations & system files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Logs and debug files
+*.log

@@ -1,0 +1,3315 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BeatStream | AI Music Recommendations</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        :root {
+            --bg-base: #000000;
+            --bg-surface: #121212;
+            --bg-surface-opaque: #181818;
+            --glass-border: #282828;
+            --glass-highlight: rgba(255, 255, 255, 0.03);
+            --text-primary: #ffffff;
+            --text-secondary: #a7a7a7;
+            --text-muted: #727272;
+            --primary: #ffffff;
+            --primary-glow: rgba(255, 255, 255, 0.1);
+            --secondary: #e4e4e7;
+            --secondary-glow: rgba(255, 255, 255, 0.05);
+            --accent: #ffffff;
+            --accent-glow: rgba(255, 255, 255, 0.15);
+            --gradient-main: linear-gradient(135deg, #ffffff 0%, #a1a1aa 100%);
+            --font-display: 'Outfit', sans-serif;
+            --font-body: 'Plus Jakarta Sans', sans-serif;
+            --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            --transition-spring: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: var(--font-body);
+            background-color: var(--bg-base);
+            color: var(--text-primary);
+            overflow: hidden;
+            height: 100vh;
+            position: relative;
+        }
+
+        /* Floating Aurora blur blobs */
+        .aurora-blur {
+            position: fixed;
+            border-radius: 50%;
+            filter: blur(150px);
+            opacity: 0.16;
+            z-index: 0;
+            pointer-events: none;
+        }
+        .aurora-1 {
+            width: 600px;
+            height: 600px;
+            background: radial-gradient(circle, rgba(255, 255, 255, 0.05) 0%, transparent 60%);
+            top: -10%;
+            left: -10%;
+            animation: orbit-1 25s infinite alternate ease-in-out;
+        }
+        .aurora-2 {
+            width: 700px;
+            height: 700px;
+            background: radial-gradient(circle, rgba(255, 255, 255, 0.03) 0%, transparent 70%);
+            bottom: -15%;
+            right: -10%;
+            animation: orbit-2 30s infinite alternate ease-in-out;
+        }
+        .aurora-3 {
+            width: 500px;
+            height: 500px;
+            background: radial-gradient(circle, rgba(255, 255, 255, 0.02) 0%, transparent 50%);
+            top: 35%;
+            left: 45%;
+            animation: orbit-3 22s infinite alternate ease-in-out;
+        }
+        @keyframes orbit-1 {
+            0% { transform: translate(0, 0) scale(1); }
+            50% { transform: translate(120px, 100px) scale(1.15); }
+            100% { transform: translate(-60px, 180px) scale(0.9); }
+        }
+        @keyframes orbit-2 {
+            0% { transform: translate(0, 0) scale(1.1); }
+            50% { transform: translate(-180px, -120px) scale(0.95); }
+            100% { transform: translate(100px, -60px) scale(1.15); }
+        }
+        @keyframes orbit-3 {
+            0% { transform: translate(0, 0) scale(0.9); }
+            50% { transform: translate(-100px, 140px) scale(1.2); }
+            100% { transform: translate(140px, -80px) scale(1.0); }
+        }
+
+        /* Scrollbar styling */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.02);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 3px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        /* Layout Container */
+        .app-container {
+            display: grid;
+            grid-template-columns: 240px 1fr 340px;
+            grid-template-rows: 70px 1fr 90px;
+            height: 100vh;
+            width: 100vw;
+            background: #000000;
+            position: relative;
+            z-index: 1;
+        }
+
+        /* Header styling */
+        header {
+            grid-column: 1 / -1;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 24px;
+            border-bottom: 1px solid #1c1c1e;
+            background: #000000;
+            z-index: 10;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-family: var(--font-display);
+            font-weight: 800;
+            font-size: 24px;
+            background: var(--gradient-main);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .logo i {
+            font-size: 26px;
+            background: var(--gradient-main);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .search-bar {
+            position: relative;
+            width: 400px;
+        }
+
+        .search-bar i {
+            position: absolute;
+            left: 14px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-muted);
+        }
+
+        .search-bar input {
+            width: 100%;
+            padding: 10px 16px 10px 40px;
+            border-radius: 20px;
+            border: 1px solid var(--glass-border);
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--text-primary);
+            font-family: var(--font-body);
+            font-size: 14px;
+            outline: none;
+            transition: var(--transition-smooth);
+        }
+
+        .search-bar input:focus {
+            border-color: var(--primary);
+            background: rgba(255, 255, 255, 0.08);
+            box-shadow: 0 0 15px var(--primary-glow);
+        }
+
+        .user-status {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .user-profile-info {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .user-avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: var(--gradient-main);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            color: white;
+            box-shadow: 0 0 10px var(--primary-glow);
+        }
+
+        .btn {
+            padding: 8px 16px;
+            border-radius: 20px;
+            border: none;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 14px;
+            font-family: var(--font-body);
+            transition: var(--transition-smooth);
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: #000000;
+            box-shadow: 0 4px 12px rgba(255, 255, 255, 0.15);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 18px rgba(255, 255, 255, 0.25);
+            background: #ffffff;
+        }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid var(--glass-border);
+            color: var(--text-primary);
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.15);
+        }
+
+        /* Sidebar Styling */
+        .sidebar {
+            background: #000000;
+            border-right: 1px solid #1c1c1e;
+            padding: 24px 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 28px;
+            overflow-y: auto;
+        }
+
+        .nav-section-title {
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            color: var(--text-muted);
+            margin-left: 12px;
+            margin-bottom: 8px;
+        }
+
+        .nav-menu {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 14px;
+            border-radius: 10px;
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-weight: 500;
+            cursor: pointer;
+            transition: var(--transition-smooth);
+        }
+
+        .nav-item:hover, .nav-item.active {
+            color: var(--text-primary);
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .nav-item.active i {
+            color: var(--primary);
+            text-shadow: 0 0 10px var(--primary-glow);
+        }
+
+        .playlist-list {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        /* Main Content Viewport */
+        .main-content {
+            padding: 24px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 32px;
+            position: relative;
+            background: #121212;
+        }
+        
+        /* View transitions styling */
+        .view-pane {
+            opacity: 0;
+            transform: translateY(20px);
+            transition: opacity 0.4s cubic-bezier(0.16, 1, 0.3, 1), transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+            display: none;
+            width: 100%;
+        }
+        .view-pane.active {
+            display: block;
+        }
+        .view-pane.show-active {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .section-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .section-title {
+            font-family: var(--font-display);
+            font-size: 24px;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+        }
+
+        /* Grid layouts */
+        .songs-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+            gap: 18px;
+        }
+
+        .song-card {
+            background: var(--bg-surface);
+            border: 1px solid var(--glass-border);
+            border-radius: 16px;
+            padding: 14px;
+            cursor: pointer;
+            transition: border-color 0.3s ease, background 0.3s ease, box-shadow 0.3s ease, transform 0.1s ease-out;
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            transform-style: preserve-3d;
+            perspective: 1000px;
+        }
+
+        .song-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle at top right, rgba(255, 255, 255, 0.02), transparent);
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        .song-card::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(var(--reflection-angle, 135deg), rgba(255, 255, 255, var(--reflection-opacity, 0)) 0%, transparent 60%);
+            pointer-events: none;
+            z-index: 5;
+            transition: opacity 0.2s ease;
+        }
+
+        .song-card:hover {
+            border-color: rgba(255, 255, 255, 0.2);
+            box-shadow: 0 12px 30px rgba(0, 0, 0, 0.6);
+            background: #282828;
+        }
+
+        .song-cover-container {
+            width: 100%;
+            aspect-ratio: 1;
+            border-radius: 10px;
+            background: linear-gradient(135deg, rgba(255,255,255,0.02) 0%, rgba(255,255,255,0.08) 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            border: 1px solid rgba(255,255,255,0.03);
+            overflow: hidden;
+        }
+
+        .song-cover-icon {
+            font-size: 40px;
+            color: rgba(255, 255, 255, 0.15);
+            transition: var(--transition-smooth);
+        }
+
+        .song-cover-img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            border-radius: 10px;
+            transition: var(--transition-smooth);
+        }
+
+        .song-card:hover .song-cover-img {
+            transform: scale(1.05);
+        }
+
+        .song-card:hover .song-cover-icon {
+            color: var(--primary);
+            transform: scale(1.1);
+        }
+
+        .play-overlay-btn {
+            position: absolute;
+            bottom: 10px;
+            right: 10px;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: var(--primary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #000000;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4);
+            opacity: 0;
+            transform: translateY(10px);
+            transition: var(--transition-smooth);
+            border: none;
+            cursor: pointer;
+        }
+
+        .song-card:hover .play-overlay-btn {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .song-title {
+            font-weight: 600;
+            font-size: 15px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            color: var(--text-primary);
+        }
+
+        .song-artist {
+            font-size: 13px;
+            color: var(--text-secondary);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .song-genre-tag {
+            font-size: 11px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--glass-border);
+            padding: 2px 8px;
+            border-radius: 12px;
+            align-self: flex-start;
+            color: var(--text-secondary);
+        }
+
+        .rec-score {
+            font-size: 11px;
+            font-weight: 700;
+            color: var(--accent);
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        /* Right Panel: Now Playing details */
+        .right-panel {
+            background: #000000;
+            border-left: 1px solid #1c1c1e;
+            padding: 24px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+        }
+
+        .now-playing-panel-title {
+            font-family: var(--font-display);
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--text-primary);
+            border-bottom: 1px solid var(--glass-border);
+            padding-bottom: 12px;
+        }
+
+        .detail-cover-art {
+            width: 100%;
+            aspect-ratio: 1;
+            border-radius: 16px;
+            background: #121212;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 1px solid var(--glass-border);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .detail-cover-art.playing::before {
+            content: '';
+            position: absolute;
+            width: 120%;
+            height: 120%;
+            background: radial-gradient(circle, rgba(255, 255, 255, 0.08) 0%, transparent 60%);
+            animation: pulse-glow 3s infinite alternate;
+        }
+
+        @keyframes pulse-glow {
+            0% { transform: scale(0.9); opacity: 0.5; }
+            100% { transform: scale(1.1); opacity: 1; }
+        }
+
+        .detail-cover-vinyl {
+            width: 140px;
+            height: 140px;
+            border-radius: 50%;
+            background: radial-gradient(circle, #000 30%, #111 31%, #222 40%, #000 41%, #333 60%, #111 70%, #000 71%);
+            box-shadow: 0 0 20px rgba(0,0,0,0.8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            will-change: transform;
+        }
+
+        .detail-vinyl-center {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: var(--gradient-main);
+            border: 4px solid #000;
+            background-size: cover;
+            background-position: center;
+            transition: var(--transition-smooth);
+        }
+
+
+        .detail-info {
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .detail-title {
+            font-family: var(--font-display);
+            font-size: 20px;
+            font-weight: 700;
+        }
+
+        .detail-artist {
+            color: var(--text-secondary);
+            font-size: 14px;
+        }
+
+        .audio-features-box {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--glass-border);
+            border-radius: 12px;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .feature-row {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .feature-label-row {
+            display: flex;
+            justify-content: space-between;
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        .feature-value {
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .feature-bar-bg {
+            width: 100%;
+            height: 6px;
+            background: rgba(255,255,255,0.08);
+            border-radius: 3px;
+            overflow: hidden;
+        }
+
+        .feature-bar-fill {
+            height: 100%;
+            background: var(--gradient-main);
+            border-radius: 3px;
+            width: 0%;
+            transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        /* Bottom player controls */
+        .bottom-player {
+            grid-column: 1 / -1;
+            background: #121212;
+            border-top: 1px solid #1c1c1e;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 32px;
+            z-index: 10;
+        }
+
+        .player-left {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            width: 300px;
+        }
+
+        .player-cover {
+            width: 50px;
+            height: 50px;
+            border-radius: 8px;
+            background: #181818;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 1px solid var(--glass-border);
+        }
+
+        .player-info {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            overflow: hidden;
+        }
+
+        .player-title {
+            font-weight: 600;
+            font-size: 14px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .player-artist {
+            font-size: 12px;
+            color: var(--text-secondary);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .player-center {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+            flex: 1;
+            max-width: 600px;
+        }
+
+        .player-controls {
+            display: flex;
+            align-items: center;
+            gap: 24px;
+        }
+
+        .player-btn {
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            cursor: pointer;
+            font-size: 16px;
+            transition: var(--transition-smooth);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .player-btn:hover {
+            color: var(--text-primary);
+        }
+
+        .player-btn-play {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: var(--text-primary);
+            color: var(--bg-base);
+            font-size: 18px;
+            box-shadow: 0 4px 10px rgba(255,255,255,0.2);
+        }
+
+        .player-btn-play:hover {
+            transform: scale(1.05);
+            background: white;
+        }
+
+        .player-btn-play.playing {
+            background: var(--primary);
+            color: var(--bg-base);
+            box-shadow: 0 4px 12px var(--primary-glow);
+        }
+
+        .player-progress-container {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            width: 100%;
+        }
+
+        .progress-time {
+            font-size: 11px;
+            color: var(--text-muted);
+            font-variant-numeric: tabular-nums;
+        }
+
+        .progress-bar-bg {
+            flex: 1;
+            height: 4px;
+            background: rgba(255,255,255,0.08);
+            border-radius: 2px;
+            cursor: pointer;
+            position: relative;
+        }
+
+        .progress-bar-fill {
+            height: 100%;
+            background: var(--primary);
+            border-radius: 2px;
+            width: 0%;
+            position: relative;
+        }
+
+        .progress-bar-bg:hover {
+            height: 6px;
+        }
+
+        .player-right {
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            gap: 20px;
+            width: 300px;
+        }
+
+        .star-rating {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .star-rating i {
+            font-size: 18px;
+            color: var(--text-muted);
+            cursor: pointer;
+            transition: var(--transition-smooth);
+        }
+
+        .star-rating i:hover, .star-rating i.active {
+            color: #ffffff;
+            text-shadow: 0 0 8px rgba(255, 255, 255, 0.4);
+        }
+
+        /* Modal Overlay for Auth */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(5, 6, 12, 0.85);
+            backdrop-filter: blur(15px);
+            z-index: 100;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: var(--transition-smooth);
+            opacity: 1;
+            pointer-events: all;
+        }
+
+        .modal-overlay.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .auth-container {
+            width: 420px;
+            background: var(--bg-surface-opaque);
+            border: 1px solid var(--glass-border);
+            border-radius: 24px;
+            padding: 32px;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.6);
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+            animation: float-up 0.5s ease;
+        }
+
+        @keyframes float-up {
+            from { transform: translateY(20px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        .auth-tabs {
+            display: flex;
+            border-bottom: 1px solid var(--glass-border);
+        }
+
+        .auth-tab {
+            flex: 1;
+            text-align: center;
+            padding: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            color: var(--text-secondary);
+            border-bottom: 2px solid transparent;
+            transition: var(--transition-smooth);
+        }
+
+        .auth-tab.active {
+            color: var(--primary);
+            border-color: var(--primary);
+        }
+
+        .auth-form {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .form-group label {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-secondary);
+        }
+
+        .form-group input {
+            background: rgba(255,255,255,0.04);
+            border: 1px solid var(--glass-border);
+            padding: 12px 16px;
+            border-radius: 12px;
+            color: white;
+            font-family: var(--font-body);
+            outline: none;
+            transition: var(--transition-smooth);
+        }
+
+        .form-group input:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 10px var(--primary-glow);
+        }
+
+        /* Preference Badges UI */
+        .genres-wrap {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 10px;
+        }
+
+        .genre-badge {
+            padding: 6px 14px;
+            background: rgba(255,255,255,0.03);
+            border: 1px solid var(--glass-border);
+            border-radius: 20px;
+            font-size: 13px;
+            cursor: pointer;
+            transition: var(--transition-smooth);
+            color: var(--text-secondary);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .genre-badge:hover {
+            border-color: var(--primary);
+            color: var(--text-primary);
+        }
+
+        .genre-badge.selected {
+            background: var(--primary);
+            color: #000000;
+            border-color: transparent;
+            box-shadow: 0 4px 10px rgba(255, 255, 255, 0.15);
+        }
+
+        /* Toast notifications */
+        .toast {
+            position: fixed;
+            bottom: 110px;
+            right: 24px;
+            padding: 12px 24px;
+            background: var(--bg-surface-opaque);
+            border: 1px solid var(--accent);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            border-radius: 12px;
+            color: white;
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-weight: 500;
+            font-size: 14px;
+            transform: translateY(100px);
+            opacity: 0;
+            transition: var(--transition-smooth);
+        }
+
+        .toast.show {
+            transform: translateY(0);
+            opacity: 1;
+        }
+
+        .toast.error {
+            border-color: #ef4444;
+        }
+
+        /* Empty states */
+        .empty-state {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 16px;
+            padding: 40px;
+            color: var(--text-muted);
+            text-align: center;
+        }
+
+        .empty-state i {
+            font-size: 48px;
+            color: rgba(255,255,255,0.05);
+        }
+
+        /* Playlist row list */
+        .playlist-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 16px;
+            border-radius: 12px;
+            background: rgba(255,255,255,0.02);
+            border: 1px solid var(--glass-border);
+            cursor: pointer;
+            transition: var(--transition-smooth);
+        }
+
+        .playlist-row:hover {
+            background: rgba(255,255,255,0.05);
+            transform: translateX(4px);
+        }
+
+        /* Songs Table (for Playlist details) */
+        .songs-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+
+        .songs-table th {
+            text-align: left;
+            padding: 12px 16px;
+            font-size: 12px;
+            font-weight: 700;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            border-bottom: 1px solid var(--glass-border);
+        }
+
+        .songs-table td {
+            padding: 14px 16px;
+            border-bottom: 1px solid rgba(255,255,255,0.02);
+            font-size: 14px;
+        }
+
+        .songs-table tr:hover td {
+            background: rgba(255,255,255,0.02);
+        }
+
+        .add-to-playlist-dropdown {
+            position: relative;
+            display: inline-block;
+        }
+
+        .dropdown-menu {
+            position: absolute;
+            right: 0;
+            bottom: 100%;
+            background: var(--bg-surface-opaque);
+            border: 1px solid var(--glass-border);
+            border-radius: 12px;
+            min-width: 180px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+            display: none;
+            flex-direction: column;
+            padding: 8px 0;
+            z-index: 50;
+        }
+
+        .dropdown-menu.show {
+            display: flex;
+        }
+
+        .dropdown-item {
+            padding: 10px 16px;
+            font-size: 13px;
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: var(--transition-smooth);
+        }
+
+        .dropdown-item:hover {
+            background: rgba(255,255,255,0.05);
+            color: white;
+        }
+
+        /* Audio bars animation */
+        .audio-wave {
+            display: flex;
+            align-items: flex-end;
+            gap: 3px;
+            height: 20px;
+            width: 30px;
+        }
+
+        .audio-bar {
+            width: 3px;
+            background: var(--primary);
+            border-radius: 2px;
+            animation: bounce 1s infinite alternate paused;
+        }
+
+        .audio-bar.playing {
+            animation-play-state: running;
+        }
+
+        .audio-bar:nth-child(2) { animation-delay: 0.2s; height: 14px; }
+        .audio-bar:nth-child(3) { animation-delay: 0.4s; height: 18px; }
+        .audio-bar:nth-child(4) { animation-delay: 0.1s; height: 10px; }
+
+        @keyframes bounce {
+            0% { height: 4px; }
+            100% { height: 22px; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Floating Aurora blur blobs -->
+    <div class="aurora-blur aurora-1"></div>
+    <div class="aurora-blur aurora-2"></div>
+    <div class="aurora-blur aurora-3"></div>
+
+    <!-- Auth Modal -->
+    <div class="modal-overlay" id="auth-modal">
+        <div class="auth-container">
+            <div class="logo" style="justify-content: center;">
+                <i class="fa-solid fa-compact-disc fa-spin"></i>
+                <span>BeatStream</span>
+            </div>
+            
+            <div class="auth-tabs">
+                <div class="auth-tab active" onclick="switchAuthTab('login')">Login</div>
+                <div class="auth-tab" onclick="switchAuthTab('register')">Register</div>
+            </div>
+
+            <div class="auth-form" id="login-form-div">
+                <div class="form-group">
+                    <label for="login-email">Email Address</label>
+                    <input type="email" id="login-email" placeholder="you@example.com" value="liveuser@example.com">
+                </div>
+                <div class="form-group">
+                    <label for="login-password">Password</label>
+                    <input type="password" id="login-password" placeholder="••••••••" value="Password123">
+                </div>
+                <button class="btn btn-primary" onclick="handleLogin()" style="width: 100%; justify-content: center; padding: 12px;">
+                    <i class="fa-solid fa-right-to-bracket"></i> Sign In
+                </button>
+            </div>
+
+            <div class="auth-form hidden" id="register-form-div" style="display: none;">
+                <div class="form-group">
+                    <label for="reg-username">Username</label>
+                    <input type="text" id="reg-username" placeholder="musicfan">
+                </div>
+                <div class="form-group">
+                    <label for="reg-email">Email Address</label>
+                    <input type="email" id="reg-email" placeholder="musicfan@example.com">
+                </div>
+                <div class="form-group">
+                    <label for="reg-password">Password</label>
+                    <input type="password" id="reg-password" placeholder="Min. 8 characters, 1 uppercase, 1 number">
+                </div>
+                <button class="btn btn-primary" onclick="handleRegister()" style="width: 100%; justify-content: center; padding: 12px;">
+                    <i class="fa-solid fa-user-plus"></i> Create Account
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Container -->
+    <div class="app-container">
+        
+        <!-- Header -->
+        <header>
+            <div class="logo">
+                <i class="fa-solid fa-compact-disc"></i>
+                <span>BeatStream</span>
+            </div>
+
+            <div class="search-bar">
+                <i class="fa-solid fa-magnifying-glass"></i>
+                <input type="text" id="search-input" placeholder="Search by songs, artists, or genres..." oninput="handleSearch(this.value)">
+            </div>
+
+            <div class="user-status">
+                <div class="user-profile-info" id="user-info-bar">
+                    <div class="user-avatar" id="avatar-letter">U</div>
+                    <span id="username-display" style="font-weight: 600;">Guest</span>
+                </div>
+                <button class="btn btn-secondary" onclick="handleLogout()">
+                    <i class="fa-solid fa-sign-out-alt"></i> Logout
+                </button>
+            </div>
+        </header>
+
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div>
+                <div class="nav-section-title">Discover</div>
+                <nav class="nav-menu">
+                    <div class="nav-item active" id="nav-home" onclick="showView('home')">
+                        <i class="fa-solid fa-house"></i> Home
+                    </div>
+                    <div class="nav-item" id="nav-search" onclick="showView('search')">
+                        <i class="fa-solid fa-compass"></i> Explore Catalog
+                    </div>
+                    <div class="nav-item" id="nav-prefs" onclick="showView('prefs')">
+                        <i class="fa-solid fa-sliders"></i> Genre Preferences
+                    </div>
+                </nav>
+            </div>
+
+            <div>
+                <div class="nav-section-title" style="display: flex; justify-content: space-between; align-items: center; margin-right: 8px;">
+                    <span>Playlists</span>
+                    <i class="fa-solid fa-plus-circle" style="cursor: pointer;" onclick="promptCreatePlaylist()"></i>
+                </div>
+                <div class="playlist-list" id="sidebar-playlists">
+                    <!-- Dynamic Playlists -->
+                    <div style="padding: 10px; color: var(--text-muted); font-size: 12px;">No playlists yet</div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Viewport -->
+        <main class="main-content" id="main-viewport">
+            
+            <!-- Home View -->
+            <div class="view-pane active show-active" id="view-home">
+                <div style="display: flex; flex-direction: column; gap: 32px;">
+                    <!-- Curated Daily Header -->
+                    <div style="background: linear-gradient(90deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.01) 100%); border: 1px solid var(--glass-border); border-radius: 20px; padding: 30px; position: relative;">
+                        <h2 style="font-family: var(--font-display); font-size: 32px; font-weight: 800; margin-bottom: 8px;">Welcome back, <span id="welcome-user">User</span>!</h2>
+                        <p style="color: var(--text-secondary); max-width: 500px; font-size: 15px;">Your AI model has processed your ratings and skips to build your custom music stream. Tap any track to play and tune recommendations.</p>
+                    </div>
+
+                    <!-- Personalized Stream -->
+                    <div>
+                        <div class="section-header" style="margin-bottom: 16px;">
+                            <h3 class="section-title">Personalized Recommendations</h3>
+                            <span style="font-size: 13px; color: var(--accent); font-weight: 600;" onclick="loadRecommendations()"><i class="fa-solid fa-arrows-rotate"></i> Refresh</span>
+                        </div>
+                        <div class="songs-grid" id="rec-songs-grid">
+                            <!-- Dynamic Cards -->
+                        </div>
+                    </div>
+
+                    <!-- Curated Picks -->
+                    <div>
+                        <div class="section-header" style="margin-bottom: 16px;">
+                            <h3 class="section-title">Curated For You</h3>
+                        </div>
+                        <div class="songs-grid" id="curated-songs-grid">
+                            <!-- Dynamic Cards -->
+                        </div>
+                    </div>
+
+                    <!-- Trending Now -->
+                    <div>
+                        <div class="section-header" style="margin-bottom: 16px;">
+                            <h3 class="section-title">Trending Catalog</h3>
+                        </div>
+                        <div class="songs-grid" id="trending-songs-grid">
+                            <!-- Dynamic Cards -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Search Catalog View -->
+            <div class="view-pane" id="view-search" style="display: none;">
+                <div style="display: flex; flex-direction: column; gap: 24px;">
+                    <div class="section-header">
+                        <h3 class="section-title">Explore Catalog</h3>
+                        <span id="search-count" style="font-size: 14px; color: var(--text-secondary);">Showing all tracks</span>
+                    </div>
+                    <div class="songs-grid" id="search-songs-grid">
+                        <!-- Search Results -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Genre Preferences View -->
+            <div class="view-pane" id="view-prefs" style="display: none;">
+                <div style="display: flex; flex-direction: column; gap: 24px; max-width: 600px;">
+                    <div>
+                        <h3 class="section-title" style="margin-bottom: 8px;">Genre Preferences</h3>
+                        <p style="color: var(--text-secondary); font-size: 14px;">Select your favorite genres. The hybrid recommendation model uses these settings to construct your baseline content profiles and resolve cold-start fallbacks.</p>
+                    </div>
+
+                    <div class="genres-wrap" id="genres-selector">
+                        <!-- Dynamic Genre Badges -->
+                    </div>
+
+                    <button class="btn btn-primary" onclick="savePreferences()" style="align-self: flex-start;">
+                        <i class="fa-solid fa-save"></i> Save Genre Settings
+                    </button>
+                </div>
+            </div>
+
+            <!-- Playlist Details View -->
+            <div class="view-pane" id="view-playlist" style="display: none;">
+                <div style="display: flex; flex-direction: column; gap: 24px;">
+                    <div style="display: flex; align-items: flex-end; gap: 24px; border-bottom: 1px solid var(--glass-border); padding-bottom: 24px;">
+                        <div style="width: 120px; height: 120px; border-radius: 16px; background: var(--gradient-main); display: flex; align-items: center; justify-content: center; font-size: 48px; box-shadow: 0 10px 20px var(--primary-glow);">
+                            <i class="fa-solid fa-music"></i>
+                        </div>
+                        <div>
+                            <div style="font-size: 12px; font-weight: 700; text-transform: uppercase; color: var(--primary);">Playlist</div>
+                            <h2 class="section-title" id="playlist-detail-name" style="font-size: 40px; margin: 4px 0 8px 0;">My Playlist</h2>
+                            <p id="playlist-detail-desc" style="color: var(--text-secondary); font-size: 14px;">Playlist description goes here...</p>
+                        </div>
+                    </div>
+
+                    <table class="songs-table">
+                        <thead>
+                            <tr>
+                                <th style="width: 50px;">#</th>
+                                <th>Title</th>
+                                <th>Artist</th>
+                                <th>Album</th>
+                                <th>Genre</th>
+                                <th style="width: 100px;">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="playlist-songs-rows">
+                            <!-- Playlist Songs -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            
+        </main>
+
+        <!-- Right Sidebar (Now Playing Panel) -->
+        <aside class="right-panel">
+            <div class="now-playing-panel-title">Now Playing</div>
+            
+            <div class="detail-cover-art" id="right-cover-box">
+                <!-- YouTube Player Wrapper -->
+                <div id="yt-player-wrapper" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; opacity: 0; pointer-events: none; background: #000; z-index: 10; border-radius: 16px; overflow: hidden; transition: opacity 0.3s ease;">
+                    <div id="yt-player-placeholder"></div>
+                </div>
+                
+                <!-- Floating notes canvas -->
+                <canvas id="particles-canvas" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 8;"></canvas>
+                
+                <div class="detail-cover-vinyl" id="vinyl-disc">
+                    <div class="detail-vinyl-center"></div>
+                </div>
+            </div>
+
+            <div class="detail-info">
+                <div style="display: flex; align-items: center; justify-content: center; gap: 8px; flex-wrap: wrap;">
+                    <div class="detail-title" id="detail-song-title">No Track Selected</div>
+                    <a id="detail-youtube-link" href="#" target="_blank" style="display: none; align-items: center; justify-content: center; color: #ff0000; font-size: 18px; flex-shrink: 0; transition: transform 0.2s;" title="Watch on YouTube" onmouseover="this.style.transform='scale(1.15)';" onmouseout="this.style.transform='scale(1)';">
+                        <i class="fa-brands fa-youtube"></i>
+                    </a>
+                </div>
+                <div class="detail-artist" id="detail-song-artist">Choose a song from your feed</div>
+                <div style="display: flex; justify-content: center; align-items: center; gap: 8px; margin-top: 6px;">
+                    <span class="song-genre-tag" id="detail-song-genre" style="display: none;">Genre</span>
+                    <div class="audio-wave" id="right-panel-visualizer" style="display: flex; align-items: flex-end; gap: 3px; height: 20px; width: 30px;">
+                        <div class="audio-bar" style="width: 3px; background: var(--primary); border-radius: 2px; height: 4px;"></div>
+                        <div class="audio-bar" style="width: 3px; background: var(--primary); border-radius: 2px; height: 4px;"></div>
+                        <div class="audio-bar" style="width: 3px; background: var(--primary); border-radius: 2px; height: 4px;"></div>
+                        <div class="audio-bar" style="width: 3px; background: var(--primary); border-radius: 2px; height: 4px;"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Radar chart box -->
+            <div id="radar-chart-container" style="display: none; background: rgba(255, 255, 255, 0.02); border: 1px solid var(--glass-border); border-radius: 12px; padding: 12px; flex-direction: column; align-items: center; gap: 6px;">
+                <div style="font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--text-muted); align-self: flex-start; letter-spacing: 0.5px;">Acoustic Fingerprint</div>
+                <canvas id="radar-chart" width="170" height="170" style="max-width: 100%;"></canvas>
+            </div>
+
+            <!-- Audio Features Section -->
+            <div class="audio-features-box" id="detail-features-box" style="display: none;">
+                <div style="font-size: 13px; font-weight: 700; text-transform: uppercase; color: var(--text-muted); margin-bottom: 4px;">Audio Fingerprint</div>
+                
+                <div class="feature-row">
+                    <div class="feature-label-row">
+                        <span>Tempo (BPM)</span>
+                        <span class="feature-value" id="val-tempo">0</span>
+                    </div>
+                    <div class="feature-bar-bg">
+                        <div class="feature-bar-fill" id="bar-tempo"></div>
+                    </div>
+                </div>
+
+                <div class="feature-row">
+                    <div class="feature-label-row">
+                        <span>Energy (Intensity)</span>
+                        <span class="feature-value" id="val-energy">0.00</span>
+                    </div>
+                    <div class="feature-bar-bg">
+                        <div class="feature-bar-fill" id="bar-energy"></div>
+                    </div>
+                </div>
+
+                <div class="feature-row">
+                    <div class="feature-label-row">
+                        <span>Danceability (Rhythm)</span>
+                        <span class="feature-value" id="val-dance">0.00</span>
+                    </div>
+                    <div class="feature-bar-bg">
+                        <div class="feature-bar-fill" id="bar-dance"></div>
+                    </div>
+                </div>
+
+                <div class="feature-row">
+                    <div class="feature-label-row">
+                        <span>Acousticness (Unplugged)</span>
+                        <span class="feature-value" id="val-acoustic">0.00</span>
+                    </div>
+                    <div class="feature-bar-bg">
+                        <div class="feature-bar-fill" id="bar-acoustic"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Similar Songs Section -->
+            <div id="detail-similar-section" style="display: none;">
+                <div style="font-size: 13px; font-weight: 700; text-transform: uppercase; color: var(--text-muted); margin-bottom: 12px;">Similar Tracks</div>
+                <div style="display: flex; flex-direction: column; gap: 8px;" id="detail-similar-list">
+                    <!-- Dynamic Similar Rows -->
+                </div>
+            </div>
+        </aside>
+
+        <!-- Bottom Player Controls -->
+        <footer class="bottom-player">
+            <div class="player-left">
+                <div class="player-cover" id="player-cover-art">
+                    <i class="fa-solid fa-music" style="color: rgba(255,255,255,0.2);"></i>
+                </div>
+                <div class="player-info">
+                    <div style="display: flex; align-items: center; gap: 6px; overflow: hidden;">
+                        <div class="player-title" id="player-song-title">Select a Track</div>
+                        <a id="player-youtube-link" href="#" target="_blank" style="display: none; align-items: center; justify-content: center; color: #ff0000; font-size: 14px; flex-shrink: 0; transition: transform 0.2s;" title="Watch on YouTube" onmouseover="this.style.transform='scale(1.15)';" onmouseout="this.style.transform='scale(1)';">
+                            <i class="fa-brands fa-youtube"></i>
+                        </a>
+                    </div>
+                    <div class="player-artist" id="player-song-artist">-</div>
+                </div>
+                <!-- Interactive visualizer wave in bottom player -->
+                <div class="audio-wave" id="player-visualizer" style="display: flex; margin-left: 12px; align-items: flex-end; gap: 3px; height: 20px; width: 30px;">
+                    <div class="audio-bar" style="width: 3px; background: var(--primary); border-radius: 2px; height: 4px;"></div>
+                    <div class="audio-bar" style="width: 3px; background: var(--primary); border-radius: 2px; height: 4px;"></div>
+                    <div class="audio-bar" style="width: 3px; background: var(--primary); border-radius: 2px; height: 4px;"></div>
+                    <div class="audio-bar" style="width: 3px; background: var(--primary); border-radius: 2px; height: 4px;"></div>
+                </div>
+            </div>
+
+            <div class="player-center">
+                <div class="player-controls">
+                    <button class="player-btn" onclick="showToast('Previous mock control clicked.')"><i class="fa-solid fa-backward-step"></i></button>
+                    <button class="player-btn player-btn-play" id="play-button" onclick="togglePlay()"><i class="fa-solid fa-play"></i></button>
+                    <button class="player-btn" onclick="handleSkip()" title="Skip track (records negative feedback)"><i class="fa-solid fa-forward-step"></i></button>
+                </div>
+                <div class="player-progress-container">
+                    <span class="progress-time" id="progress-current">0:00</span>
+                    <div class="progress-bar-bg" onclick="handleProgressBarClick(event)">
+                        <div class="progress-bar-fill" id="player-progress-fill"></div>
+                    </div>
+                    <span class="progress-time" id="progress-total">0:00</span>
+                </div>
+            </div>
+
+            <div class="player-right">
+                <span style="font-size: 12px; color: var(--text-secondary);">Your Rating:</span>
+                <div class="star-rating" id="player-stars">
+                    <i class="fa-regular fa-star" data-rating="1" onclick="rateCurrentSong(1)"></i>
+                    <i class="fa-regular fa-star" data-rating="2" onclick="rateCurrentSong(2)"></i>
+                    <i class="fa-regular fa-star" data-rating="3" onclick="rateCurrentSong(3)"></i>
+                    <i class="fa-regular fa-star" data-rating="4" onclick="rateCurrentSong(4)"></i>
+                    <i class="fa-regular fa-star" data-rating="5" onclick="rateCurrentSong(5)"></i>
+                </div>
+                
+                <div class="add-to-playlist-dropdown">
+                    <button class="btn btn-secondary" onclick="togglePlaylistDropdown()" id="playlist-drop-btn" style="padding: 6px 12px; font-size: 12px; border-radius: 12px;">
+                        <i class="fa-solid fa-plus"></i> Add to Playlist
+                    </button>
+                    <div class="dropdown-menu" id="playlist-dropdown">
+                        <!-- Playlists dynamic entries -->
+                    </div>
+                </div>
+            </div>
+        </footer>
+    </div>
+
+    <!-- Toast Notification -->
+    <div class="toast" id="toast-notif">
+        <i class="fa-solid fa-circle-check"></i>
+        <span id="toast-text">Toast Alert Message</span>
+    </div>
+
+    <!-- Script Block -->
+    <script>
+        // Client-side standalone data & recommendation logic
+        let allSongs = [{"id": 1, "title": "Blinding Lights", "artist": "The Weeknd", "album": "After Hours", "genre": "Pop", "duration": 200, "youtube_id": "XwxLwG2_Sxk", "tempo": 171.0, "energy": 0.8, "danceability": 0.75, "valence": 0.65, "acousticness": 0.1, "popularity": 5.0}, {"id": 3, "title": "Levitating", "artist": "Dua Lipa", "album": "Future Nostalgia", "genre": "Pop", "duration": 203, "youtube_id": "TUVcZfQe-Kw", "tempo": 103.0, "energy": 0.82, "danceability": 0.9, "valence": 0.91, "acousticness": 0.02, "popularity": 89.0}, {"id": 5, "title": "Bad Habits", "artist": "Ed Sheeran", "album": "=", "genre": "Pop", "duration": 231, "youtube_id": "1KZaWYdltHc", "tempo": 126.0, "energy": 0.89, "danceability": 0.8, "valence": 0.59, "acousticness": 0.05, "popularity": 87.0}, {"id": 6, "title": "Bohemian Rhapsody", "artist": "Queen", "album": "A Night at the Opera", "genre": "Rock", "duration": 354, "youtube_id": "axAtWjn3MfI", "tempo": 143.0, "energy": 0.4, "danceability": 0.39, "valence": 0.22, "acousticness": 0.27, "popularity": 1.0}, {"id": 7, "title": "Smells Like Teen Spirit", "artist": "Nirvana", "album": "Nevermind", "genre": "Rock", "duration": 301, "youtube_id": "KtALJ97XMw0", "tempo": 117.0, "energy": 0.91, "danceability": 0.5, "valence": 0.72, "acousticness": 0.0, "popularity": 90.0}, {"id": 9, "title": "Stairway to Heaven", "artist": "Led Zeppelin", "album": "Led Zeppelin IV", "genre": "Rock", "duration": 482, "youtube_id": "x8z6iqeiOIU", "tempo": 82.0, "energy": 0.34, "danceability": 0.3, "valence": 0.19, "acousticness": 0.58, "popularity": 86.0}, {"id": 10, "title": "Sweet Child O' Mine", "artist": "Guns N' Roses", "album": "Appetite for Destruction", "genre": "Rock", "duration": 356, "youtube_id": "8y1UL5SYgPs", "tempo": 125.0, "energy": 0.9, "danceability": 0.45, "valence": 0.62, "acousticness": 0.09, "popularity": 87.0}, {"id": 11, "title": "Lose Yourself", "artist": "Eminem", "album": "8 Mile", "genre": "Hip Hop", "duration": 326, "youtube_id": "tR1ECf4sEpw", "tempo": 171.0, "energy": 0.74, "danceability": 0.69, "valence": 0.06, "acousticness": 0.01, "popularity": 90.0}, {"id": 15, "title": "Industry Baby", "artist": "Lil Nas X & Jack Harlow", "album": "Montero", "genre": "Hip Hop", "duration": 212, "youtube_id": "UTHLKHL_whs", "tempo": 150.0, "energy": 0.7, "danceability": 0.74, "valence": 0.89, "acousticness": 0.02, "popularity": 0.0}, {"id": 17, "title": "Clarity", "artist": "Zedd", "album": "Clarity", "genre": "Electronic", "duration": 271, "youtube_id": "eZxo9mrWgR8", "tempo": 128.0, "energy": 0.78, "danceability": 0.61, "valence": 0.38, "acousticness": 0.04, "popularity": 82.0}, {"id": 18, "title": "Titanium", "artist": "David Guetta & Sia", "album": "Nothing but the Beat", "genre": "Electronic", "duration": 245, "youtube_id": "KxnpFKZowcs", "tempo": 126.0, "energy": 0.79, "danceability": 0.6, "valence": 0.3, "acousticness": 0.01, "popularity": 0.0}, {"id": 19, "title": "Scary Monsters and Nice Sprites", "artist": "Skrillex", "album": "Scary Monsters and Nice Sprites", "genre": "Electronic", "duration": 243, "youtube_id": "WSeNSzJ2-Jw", "tempo": 140.0, "energy": 0.95, "danceability": 0.64, "valence": 0.39, "acousticness": 0.01, "popularity": 75.0}, {"id": 20, "title": "Strobe", "artist": "deadmau5", "album": "For Lack of a Better Name", "genre": "Electronic", "duration": 637, "youtube_id": "tKi9Z-f6qX4", "tempo": 128.0, "energy": 0.68, "danceability": 0.59, "valence": 0.11, "acousticness": 0.0, "popularity": 72.0}, {"id": 22, "title": "Adorn", "artist": "Miguel", "album": "Kaleidoscope Dream", "genre": "R&B", "duration": 193, "youtube_id": "eqsiuDFrlEk", "tempo": 90.0, "energy": 0.55, "danceability": 0.68, "valence": 0.49, "acousticness": 0.12, "popularity": 78.0}, {"id": 24, "title": "We Belong Together", "artist": "Mariah Carey", "album": "The Emancipation of Mimi", "genre": "R&B", "duration": 201, "youtube_id": "mJ09L3sOOUY", "tempo": 80.0, "energy": 0.44, "danceability": 0.83, "valence": 0.76, "acousticness": 0.03, "popularity": 81.0}, {"id": 25, "title": "No Guidance", "artist": "Chris Brown & Drake", "album": "Indigo", "genre": "R&B", "duration": 260, "youtube_id": "Cfk3y8nXIoM", "tempo": 93.0, "energy": 0.45, "danceability": 0.7, "valence": 0.14, "acousticness": 0.12, "popularity": 83.0}, {"id": 26, "title": "Take Five", "artist": "Dave Brubeck", "album": "Time Out", "genre": "Jazz", "duration": 324, "youtube_id": "0QzdNAJiuPY", "tempo": 174.0, "energy": 0.25, "danceability": 0.45, "valence": 0.51, "acousticness": 0.82, "popularity": 79.0}, {"id": 27, "title": "So What", "artist": "Miles Davis", "album": "Kind of Blue", "genre": "Jazz", "duration": 562, "youtube_id": "lz4s2A1vG2c", "tempo": 135.0, "energy": 0.15, "danceability": 0.5, "valence": 0.33, "acousticness": 0.9, "popularity": 78.0}, {"id": 28, "title": "My Favorite Things", "artist": "John Coltrane", "album": "My Favorite Things", "genre": "Jazz", "duration": 821, "youtube_id": "JQvc-Gkwhow", "tempo": 120.0, "energy": 0.35, "danceability": 0.38, "valence": 0.4, "acousticness": 0.75, "popularity": 73.0}, {"id": 31, "title": "Symphony No. 5 in C minor", "artist": "Ludwig van Beethoven", "album": "Beethoven: Symphonies Nos. 5 & 7", "genre": "Classical", "duration": 482, "youtube_id": "yKl4T5BnhOA", "tempo": 108.0, "energy": 0.22, "danceability": 0.29, "valence": 0.31, "acousticness": 0.91, "popularity": 76.0}, {"id": 33, "title": "Nocturne in E-flat major", "artist": "Frédéric Chopin", "album": "Chopin: Nocturnes", "genre": "Classical", "duration": 270, "youtube_id": "p29JUpsOSTE", "tempo": 64.0, "energy": 0.02, "danceability": 0.38, "valence": 0.08, "acousticness": 0.99, "popularity": 1.0}, {"id": 34, "title": "Canon in D major", "artist": "Johann Pachelbel", "album": "Pachelbel's Greatest Hits", "genre": "Classical", "duration": 380, "youtube_id": "9nX_ReyaetE", "tempo": 80.0, "energy": 0.12, "danceability": 0.25, "valence": 0.45, "acousticness": 0.95, "popularity": 79.0}, {"id": 35, "title": "The Four Seasons: Spring", "artist": "Antonio Vivaldi", "album": "The Four Seasons", "genre": "Classical", "duration": 215, "youtube_id": "QkYKNOM0uKg", "tempo": 115.0, "energy": 0.35, "danceability": 0.42, "valence": 0.81, "acousticness": 0.85, "popularity": 78.0}, {"id": 37, "title": "Jolene", "artist": "Dolly Parton", "album": "Jolene", "genre": "Country", "duration": 161, "youtube_id": "aU3787NR-do", "tempo": 110.0, "energy": 0.55, "danceability": 0.67, "valence": 0.8, "acousticness": 0.41, "popularity": 82.0}, {"id": 38, "title": "Take Me Home, Country Roads", "artist": "John Denver", "album": "Poems, Prayers & Promises", "genre": "Country", "duration": 190, "youtube_id": "uu7j_xljCRY", "tempo": 91.0, "energy": 0.52, "danceability": 0.62, "valence": 0.74, "acousticness": 0.48, "popularity": 86.0}, {"id": 39, "title": "Whiskey Glasses", "artist": "Morgan Wallen", "album": "If I Know Me", "genre": "Country", "duration": 234, "youtube_id": "yOXMh_2eCUM", "tempo": 150.0, "energy": 0.7, "danceability": 0.61, "valence": 0.71, "acousticness": 0.36, "popularity": 85.0}, {"id": 40, "title": "Man! I Feel Like a Woman!", "artist": "Shania Twain", "album": "Come On Over", "genre": "Country", "duration": 234, "youtube_id": "ILL9AslvZA8", "tempo": 125.0, "energy": 0.86, "danceability": 0.66, "valence": 0.69, "acousticness": 0.12, "popularity": 81.0}, {"id": 41, "title": "Riptide", "artist": "Vance Joy", "album": "Dream Your Life Away", "genre": "Indie", "duration": 204, "youtube_id": "lYoWuaw5nSk", "tempo": 125.0, "energy": 0.73, "danceability": 0.48, "valence": 0.51, "acousticness": 0.73, "popularity": 86.0}, {"id": 42, "title": "Ho Hey", "artist": "The Lumineers", "album": "The Lumineers", "genre": "Indie", "duration": 163, "youtube_id": "LPyZYmPb3sM", "tempo": 80.0, "energy": 0.49, "danceability": 0.69, "valence": 0.44, "acousticness": 0.79, "popularity": 83.0}, {"id": 43, "title": "Dog Days Are Over", "artist": "Florence + The Machine", "album": "Lungs", "genre": "Indie", "duration": 252, "youtube_id": "P9CvQYMAGzw", "tempo": 150.0, "energy": 0.8, "danceability": 0.51, "valence": 0.78, "acousticness": 0.08, "popularity": 81.0}, {"id": 44, "title": "Little Talks", "artist": "Of Monsters and Men", "album": "My Head Is an Animal", "genre": "Indie", "duration": 266, "youtube_id": "IY8rOSyR5Rw", "tempo": 103.0, "energy": 0.79, "danceability": 0.43, "valence": 0.56, "acousticness": 0.02, "popularity": 82.0}, {"id": 45, "title": "Skinny Love", "artist": "Bon Iver", "album": "For Emma, Forever Ago", "genre": "Indie", "duration": 239, "youtube_id": "ZVp1a9uYivs", "tempo": 77.0, "energy": 0.31, "danceability": 0.55, "valence": 0.22, "acousticness": 0.85, "popularity": 79.0}, {"id": 48, "title": "Mi Gente", "artist": "J Balvin & Willy William", "album": "Vibras", "genre": "Latin", "duration": 189, "youtube_id": "xlXp9OFX8QM", "tempo": 105.0, "energy": 0.72, "danceability": 0.76, "valence": 0.61, "acousticness": 0.02, "popularity": 83.0}, {"id": 49, "title": "Chantaje", "artist": "Shakira & Maluma", "album": "El Dorado", "genre": "Latin", "duration": 195, "youtube_id": "6Mgqbai3fKo", "tempo": 102.0, "energy": 0.77, "danceability": 0.85, "valence": 0.91, "acousticness": 0.19, "popularity": 82.0}, {"id": 51, "title": "Hello", "artist": "Adele", "album": "YouTube Search", "genre": "General", "duration": 367, "youtube_id": "8fIUkINS1uo", "tempo": 117.20869299027967, "energy": 0.4384046557928827, "danceability": 0.6371017108754955, "valence": 0.7095735601424029, "acousticness": 0.4395719336843308, "popularity": 50.0}, {"id": 52, "title": "Hello", "artist": "Adele", "album": "YouTube Search", "genre": "General", "duration": 296, "youtube_id": "8fIUkINS1uo", "tempo": 80.32068887993519, "energy": 0.3223024360095562, "danceability": 0.6486034114283326, "valence": 0.5615602134410456, "acousticness": 0.6439879256338562, "popularity": 50.0}, {"id": 53, "title": "Hello", "artist": "Adele", "album": "YouTube Search", "genre": "General", "duration": 290, "youtube_id": "8fIUkINS1uo", "tempo": 107.93531399731468, "energy": 0.4714697656185907, "danceability": 0.5536751770195099, "valence": 0.6415928473119558, "acousticness": 0.26475696568453116, "popularity": 50.0}, {"id": 54, "title": "Hello", "artist": "Adele", "album": "YouTube Search", "genre": "General", "duration": 296, "youtube_id": "8fIUkINS1uo", "tempo": 108.95255178597084, "energy": 0.3802171182688146, "danceability": 0.48675130230174757, "valence": 0.5987605547414829, "acousticness": 0.20842478653378904, "popularity": 50.0}, {"id": 56, "title": "Hello (Live at the NRJ Awards)", "artist": "Adele", "album": "YouTube Search", "genre": "General", "duration": 308, "youtube_id": "DfG6VKnjrVw", "tempo": 130.0200957665906, "energy": 0.7649237387860714, "danceability": 0.610773389964953, "valence": 0.7814571758977196, "acousticness": 0.200109728231687, "popularity": 50.0}, {"id": 57, "title": "hello (live - in munich) (simulated DVD)", "artist": "Adele", "album": "YouTube Search", "genre": "General", "duration": 388, "youtube_id": "rI1ZAIFHD20", "tempo": 120.01036272672029, "energy": 0.6765315186169314, "danceability": 0.49429889111542324, "valence": 0.7814618390574253, "acousticness": 0.6254605701605748, "popularity": 50.0}, {"id": 58, "title": "Adele (Karaoke Songs With Lyrics - Original Key)", "artist": "Hello", "album": "YouTube Search", "genre": "General", "duration": 294, "youtube_id": "doWWkG2gPPE", "tempo": 97.04010224171905, "energy": 0.4950481259894266, "danceability": 0.4899419917683568, "valence": 0.49524844546344055, "acousticness": 0.20849597315650065, "popularity": 50.0}, {"id": 59, "title": "\"Verified\"", "artist": "T.E.", "album": "YouTube Search", "genre": "General", "duration": 178, "youtube_id": "JszXeDWKzUc", "tempo": 137.24654691768606, "energy": 0.5984961508142885, "danceability": 0.5834263438854794, "valence": 0.3808925394161649, "acousticness": 0.23708682668984118, "popularity": 50.0}, {"id": 60, "title": "\"INDICTED\"", "artist": "T.E.", "album": "YouTube Search", "genre": "General", "duration": 142, "youtube_id": "otFb9dZDYeY", "tempo": 97.70414655925866, "energy": 0.6538402708692499, "danceability": 0.786070798858725, "valence": 0.6754209482399043, "acousticness": 0.39713511747888486, "popularity": 1.0}, {"id": 61, "title": "TRY NOT TO LAUGH #31 😂😁 The Funniest Videos & Viral Memes of 2026", "artist": "Rie Mundo", "album": "YouTube Search", "genre": "General", "duration": 1058, "youtube_id": "5NT5ajSpXZg", "tempo": 125.80151032260895, "energy": 0.5923608798261621, "danceability": 0.7408153956755312, "valence": 0.4783908618004459, "acousticness": 0.5943072412840523, "popularity": 50.0}, {"id": 62, "title": "Italian Brainrot", "artist": "Evolution of Te Te Te Te Sahur", "album": "YouTube Search", "genre": "General", "duration": 106, "youtube_id": "m9GlaHKJvAU", "tempo": 114.7660114872941, "energy": 0.38445985374122205, "danceability": 0.31736130145301644, "valence": 0.5444617842511289, "acousticness": 0.2612743936156438, "popularity": 50.0}, {"id": 63, "title": "I Got Time Today", "artist": "T.E.", "album": "YouTube Search", "genre": "General", "duration": 149, "youtube_id": "dqpDOno095k", "tempo": 124.91654932407886, "energy": 0.6597711399229911, "danceability": 0.6676012106066547, "valence": 0.30029382369512736, "acousticness": 0.434789799814007, "popularity": 50.0}, {"id": 64, "title": "\"I Can Tell\"", "artist": "T.E.", "album": "YouTube Search", "genre": "General", "duration": 167, "youtube_id": "zycQehkewEI", "tempo": 136.62890280867006, "energy": 0.5643412328994067, "danceability": 0.3630440102840709, "valence": 0.3043206092244983, "acousticness": 0.3776460397969913, "popularity": 50.0}, {"id": 65, "title": "T.E.- \"That\"s Life\"", "artist": "T.E. Official Music Page", "album": "YouTube Search", "genre": "General", "duration": 130, "youtube_id": "91ck0vJBygo", "tempo": 85.26303860387294, "energy": 0.644927566325395, "danceability": 0.6395432340592182, "valence": 0.5520510521429183, "acousticness": 0.4425221460543908, "popularity": 50.0}, {"id": 66, "title": "\"Step 1\" Remix Edited by - T.E.", "artist": "T.E.", "album": "YouTube Search", "genre": "General", "duration": 181, "youtube_id": "d0Ghre8-iw0", "tempo": 135.81158568731303, "energy": 0.6058127418071912, "danceability": 0.5888704749335133, "valence": 0.43033490662207863, "acousticness": 0.29731859434431335, "popularity": 50.0}, {"id": 68, "title": "Telugu | NTR | Anil Kapoor | Rukmini Vasanth | Ravi Basrur | Prashanth Neel", "artist": "Dragon Glimpse", "album": "YouTube Search", "genre": "General", "duration": 269, "youtube_id": "I0-NaTkTdvM", "tempo": 103.528407568462, "energy": 0.6544670261626662, "danceability": 0.4010064232947913, "valence": 0.6388620412989527, "acousticness": 0.6935376906255238, "popularity": 50.0}, {"id": 71, "title": "Ram Charan | Janhvi Kapoor | A R Rahman | Buchi Babu Sana", "artist": "Peddi Official Trailer (Telugu)", "album": "YouTube Search", "genre": "General", "duration": 187, "youtube_id": "sF2dj7ycZvA", "tempo": 128.85747785242353, "energy": 0.7798812662344199, "danceability": 0.593529880446032, "valence": 0.4818211070577319, "acousticness": 0.2552504412461841, "popularity": 50.0}, {"id": 73, "title": "🚨Cockroach Janta Party Full Details in Short || Poolachokka || In Telugu || Explained in Telugu", "artist": "Poolachokka", "album": "YouTube Search", "genre": "General", "duration": 216, "youtube_id": "rd-R2fY__y8", "tempo": 115.85260771966412, "energy": 0.6180204794302161, "danceability": 0.7382516304502564, "valence": 0.7044308932067089, "acousticness": 0.24760292436380665, "popularity": 50.0}, {"id": 74, "title": "#HyperAadi #RegenaCassandrra #VijayBinni #Nandu #DeepikaRangaraju | Heat Seekers | ETV Telugu", "artist": "Dhee", "album": "YouTube Search", "genre": "General", "duration": 552, "youtube_id": "V1Ym_51Epr4", "tempo": 127.57338757226118, "energy": 0.7447631782720403, "danceability": 0.3332897237468254, "valence": 0.6032416845260815, "acousticness": 0.6561824880862965, "popularity": 50.0}, {"id": 75, "title": "Hyper Aadi, Nandu | Dhee 20 | 14th May 2026 | ETV Telugu", "artist": "Funny Task", "album": "YouTube Search", "genre": "General", "duration": 524, "youtube_id": "ikG_8qXGvqI", "tempo": 98.85051626231136, "energy": 0.39385177427840073, "danceability": 0.5481204854333961, "valence": 0.3302827668242758, "acousticness": 0.5894888907481354, "popularity": 50.0}, {"id": 76, "title": "Telugu ZEE5 Original Series | Naga Babu, Getup Srinu & Ravi Teja | Watch Now", "artist": "Memu Coplam", "album": "YouTube Search", "genre": "General", "duration": 152, "youtube_id": "WO0bg33MpsU", "tempo": 101.72387394274008, "energy": 0.6433255325604224, "danceability": 0.7383759903315148, "valence": 0.7593094699132368, "acousticness": 0.17837822888255786, "popularity": 50.0}, {"id": 77, "title": "Ram P | Shivam |Sun NXT Telugu", "artist": "Nee Venta Pade Vadu… Neevu Venta Pade Vallu Eeroje Chustavu ❤️🔥", "album": "YouTube Search", "genre": "General", "duration": 708, "youtube_id": "jua9-IX0c6E", "tempo": 112.8791057247692, "energy": 0.5263251156199904, "danceability": 0.7323407357400714, "valence": 0.7040845902225408, "acousticness": 0.5135580053961311, "popularity": 50.0}, {"id": 78, "title": "Telugu ZEE5 Original | Naga Babu, Getup Srinu & Ravi Teja | Premieres 22nd May", "artist": "Memu Coplam", "album": "YouTube Search", "genre": "General", "duration": 152, "youtube_id": "nND7KRyPqks", "tempo": 104.52968580991595, "energy": 0.43713785228294094, "danceability": 0.507876507156994, "valence": 0.39818880761565817, "acousticness": 0.49350161046760854, "popularity": 50.0}, {"id": 79, "title": "Peddi | Ram Charan | Shruthi Haasan | Janhvi | AR Rahman", "artist": "Hellallallo Full Song Promo (TELUGU)", "album": "YouTube Search", "genre": "General", "duration": 242, "youtube_id": "875uOrLjReE", "tempo": 115.69943489073819, "energy": 0.6252556978225075, "danceability": 0.6227799130936147, "valence": 0.4729776506981154, "acousticness": 0.38976138867663235, "popularity": 50.0}, {"id": 80, "title": "Ananthika Sanilkumar | Phanindra Narsetti | Hesham | Chithra", "artist": "Full Video: Parichayamila 8 Vasantalu", "album": "YouTube Search", "genre": "General", "duration": 202, "youtube_id": "7TGNM3c183s", "tempo": 88.88269885484861, "energy": 0.45041893255959753, "danceability": 0.7102411309798804, "valence": 0.42556846431598744, "acousticness": 0.6580534884642661, "popularity": 50.0}, {"id": 84, "title": "My Heart Is Beating Full HD Video Song || Jalsa Telugu Movie || Pawan Kalyan , Ileana", "artist": "Geetha Arts Music", "album": "YouTube Search", "genre": "General", "duration": 307, "youtube_id": "C5cSb4rDNfg", "tempo": 84.29787248360834, "energy": 0.35790374569660016, "danceability": 0.49355241715632575, "valence": 0.7468460224128797, "acousticness": 0.482584178347204, "popularity": 50.0}, {"id": 85, "title": "Andhra King Taluka | Ram Pothineni | Bhagyashri Borse | Mahesh Babu P", "artist": "Chinni Gundelo 8K Video", "album": "YouTube Search", "genre": "General", "duration": 206, "youtube_id": "PmuQDnWT-WI", "tempo": 84.45741003045534, "energy": 0.30923793129111016, "danceability": 0.4941043099996672, "valence": 0.748997129763838, "acousticness": 0.3790443469482827, "popularity": 50.0}, {"id": 86, "title": "Lyrical | The Paradise | Nani | Anirudh Ravichander | Srikanth Odela", "artist": "Aaya Sher", "album": "YouTube Search", "genre": "General", "duration": 297, "youtube_id": "iAtoZar5W58", "tempo": 103.4812878911431, "energy": 0.7825745629670544, "danceability": 0.6762462912341962, "valence": 0.35579301485594134, "acousticness": 0.3309304898641924, "popularity": 50.0}, {"id": 87, "title": "Lyrical | Mirai | Teja Sajja, Ritika Nayak | Karthik Gattamneni |Gowra Hari|Armaan Malik", "artist": "Vibe Undi", "album": "YouTube Search", "genre": "General", "duration": 214, "youtube_id": "sUuLY8-LjKM", "tempo": 117.10516641136263, "energy": 0.45008541714643985, "danceability": 0.49540606842552964, "valence": 0.559712265988539, "acousticness": 0.5596228123437519, "popularity": 50.0}, {"id": 88, "title": "Tarun | Shriya Saran | Trivikram | Koti", "artist": "Naa Manasukemayindhi 4K Video Song l Nuvve Nuvve Movie", "album": "YouTube Search", "genre": "General", "duration": 262, "youtube_id": "cCoNfxrlQKs", "tempo": 136.30262953193136, "energy": 0.41355529130510227, "danceability": 0.6155230259647955, "valence": 0.4464960764433136, "acousticness": 0.19564614003760028, "popularity": 50.0}, {"id": 89, "title": "Video Song | The RajaSaab | Prabhas, Malavika Mohan, Nidhhi Agerwal, Riddhi | Thaman S", "artist": "Nache Nache", "album": "YouTube Search", "genre": "General", "duration": 213, "youtube_id": "PTOdy61rIao", "tempo": 114.10960619620862, "energy": 0.6380982305412513, "danceability": 0.7599938340206143, "valence": 0.5599141064330722, "acousticness": 0.5244610696256863, "popularity": 50.0}, {"id": 90, "title": "Nee Sneham | Uday Kiran, Aarti Agarwal | R. P. Patnaik, Usha | Telugu Love Songs", "artist": "Veyi Kannulatho", "album": "YouTube Search", "genre": "General", "duration": 208, "youtube_id": "yQbuUKP_jiE", "tempo": 119.54161851982062, "energy": 0.3552265735550439, "danceability": 0.3137034659386948, "valence": 0.6894755786375598, "acousticness": 0.39097478524492957, "popularity": 50.0}, {"id": 91, "title": "Nuvvu Naaku Nachav | Venkatesh | Aarthi Agarwal | Koti", "artist": "Unnamata Cheppaneevu 4K Video Song", "album": "YouTube Search", "genre": "General", "duration": 283, "youtube_id": "gjhNqseiet8", "tempo": 122.63339354471633, "energy": 0.7772919419209483, "danceability": 0.7630815722482234, "valence": 0.5237399190556107, "acousticness": 0.32311170701300335, "popularity": 50.0}, {"id": 93, "title": "Premikudu Movie | Prabhu Deva, Nagma | A. R. Rahman | Telugu Songs", "artist": "Andamaina Premarani Video Song", "album": "YouTube Search", "genre": "General", "duration": 306, "youtube_id": "-YLjQzfNI4w", "tempo": 135.1325039724669, "energy": 0.7311738219143109, "danceability": 0.39507585307080595, "valence": 0.7080743969795691, "acousticness": 0.6322886974957059, "popularity": 50.0}, {"id": 94, "title": "Ustaad Bhagat Singh | Power Star Pawan Kalyan, Sreeleela | Harish Shankar", "artist": "Ee Manase Video Song", "album": "YouTube Search", "genre": "General", "duration": 265, "youtube_id": "-xB_Nnm7CHU", "tempo": 138.26778532556312, "energy": 0.717688872365165, "danceability": 0.7158600050569524, "valence": 0.7604190486078509, "acousticness": 0.35955160855408796, "popularity": 50.0}, {"id": 95, "title": "First Semester | Anand Deverakonda,Vaishnavi | Aditya Haasan | Hesham", "artist": "Sancharame Video Song | EPIC", "album": "YouTube Search", "genre": "General", "duration": 207, "youtube_id": "G9Stes_DM44", "tempo": 118.29317286417424, "energy": 0.6859773979047832, "danceability": 0.6819030157074728, "valence": 0.6905276666251847, "acousticness": 0.5346125893435811, "popularity": 50.0}, {"id": 97, "title": "Lyrical | Andhra King Taluka | Ram Pothineni | Bhagyashri Borse | Mahesh Babu P", "artist": "Nuvvunte Chaley", "album": "YouTube Search", "genre": "General", "duration": 240, "youtube_id": "s9NBDKfVg1c", "tempo": 88.19914752799355, "energy": 0.652615351377126, "danceability": 0.34408761609511446, "valence": 0.736207484356133, "acousticness": 0.13795876754703293, "popularity": 50.0}, {"id": 98, "title": "Andhra King Taluka | Ram Pothineni | Bhagyashri Borse | Mahesh Babu P", "artist": "Full Video: Nuvvunte Chaley", "album": "YouTube Search", "genre": "General", "duration": 209, "youtube_id": "s9NBDKfVg1c", "tempo": 135.51503209393337, "energy": 0.705306420716992, "danceability": 0.44669115106275464, "valence": 0.6990631288931267, "acousticness": 0.37264100137047995, "popularity": 50.0}, {"id": 99, "title": "Lyrical | Andhra King Taluka | Ram Pothineni | Bhagyashri Borse | Mahesh Babu P", "artist": "Chinni Gundelo", "album": "YouTube Search", "genre": "General", "duration": 220, "youtube_id": "iBpSuQTJdaU", "tempo": 86.57026425223516, "energy": 0.7409273006255077, "danceability": 0.6906096828762185, "valence": 0.41566349375450845, "acousticness": 0.33361952839246245, "popularity": 50.0}, {"id": 100, "title": "Andhra King Taluka | Ram Pothineni,Bhagyashri | Vivek-Mervin | Mahesh Babu", "artist": "Untold Emotions Audio", "album": "YouTube Search", "genre": "General", "duration": 276, "youtube_id": "Zr4ubdYI3Uo", "tempo": 99.50628522120215, "energy": 0.6811023089244872, "danceability": 0.7687552002821467, "valence": 0.3760355729818961, "acousticness": 0.12450176613100242, "popularity": 50.0}, {"id": 101, "title": "Andhra King Taluka | Ram Pothineni | Upendra | Mahesh Babu P | Vivek-Mervin", "artist": "Untold Emotions Video", "album": "YouTube Search", "genre": "General", "duration": 97, "youtube_id": "Zr4ubdYI3Uo", "tempo": 102.02564283725812, "energy": 0.795363036857837, "danceability": 0.3434696469574729, "valence": 0.4997553258539925, "acousticness": 0.5430310098255157, "popularity": 50.0}, {"id": 102, "title": "Andhra King Taluka | Ram Pothineni |Upendra |Mahesh Babu P |Vivek & Mervin", "artist": "Full Video: Puppy Shame", "album": "YouTube Search", "genre": "General", "duration": 215, "youtube_id": "wLEB8obVKLU", "tempo": 96.73566346847912, "energy": 0.4173654934722634, "danceability": 0.301832339843544, "valence": 0.30307970974128445, "acousticness": 0.5957655979841118, "popularity": 50.0}, {"id": 103, "title": "Andhra King Taluka | Ram Pothineni, Bhagyashri | Vivek-Mervin | Mahesh Babu", "artist": "Chalu Lyrical Video", "album": "YouTube Search", "genre": "General", "duration": 275, "youtube_id": "5uGfDTdzYkg", "tempo": 85.10347150743779, "energy": 0.7562170147833003, "danceability": 0.5052682243364114, "valence": 0.41699347096385414, "acousticness": 0.6827718774263511, "popularity": 50.0}, {"id": 104, "title": "Dude | Pradeep Ranganathan, Mamitha Baiju | @SaiAbhyankkar | Keerthiswaran", "artist": "Singari Video Song", "album": "YouTube Search", "genre": "General", "duration": 207, "youtube_id": "0_Lm2PzEeZ8", "tempo": 111.57917582644376, "energy": 0.695304209649573, "danceability": 0.6373307284088561, "valence": 0.5840798313324311, "acousticness": 0.30117489314321144, "popularity": 50.0}, {"id": 105, "title": "#Jaanu Video Songs | Sharwanand | Samantha | Govind Vasantha", "artist": "The Life Of Ram Video Song (Telugu)", "album": "YouTube Search", "genre": "General", "duration": 387, "youtube_id": "2a34XyiZO14", "tempo": 103.3758762888286, "energy": 0.5778083337080786, "danceability": 0.6292768410506071, "valence": 0.7926686766439962, "acousticness": 0.36763508983912097, "popularity": 50.0}, {"id": 106, "title": "EndukantePremanta Movie |Ram,Tamannah| Maa Paata Mee Nota", "artist": "#NeeChoopule Full Song With TeluguLyrics", "album": "YouTube Search", "genre": "General", "duration": 347, "youtube_id": "66avB2FwbT4", "tempo": 126.53786169556479, "energy": 0.6296190507805492, "danceability": 0.3646124927359461, "valence": 0.7205496043377397, "acousticness": 0.6267443574030107, "popularity": 50.0}, {"id": 107, "title": "Idedo Bagundi Video Song | Latest Telugu Songs | Prabhas, Anushka @SriBalajiMovies", "artist": "Mirchi Songs", "album": "YouTube Search", "genre": "General", "duration": 266, "youtube_id": "VQ2-HPwxAZY", "tempo": 110.1173924016403, "energy": 0.43870047492616987, "danceability": 0.7335460046046598, "valence": 0.4910251147104201, "acousticness": 0.41539118227652494, "popularity": 50.0}, {"id": 108, "title": "Peddi (TELUGU) | Ram Charan | Buchi Babu | Shruthi Haasan | Janhvi | AR Rahman", "artist": "Hellallallo Video", "album": "YouTube Search", "genre": "General", "duration": 237, "youtube_id": "6zDfwVSvyEk", "tempo": 88.14080922888299, "energy": 0.35450452062011445, "danceability": 0.3361720754550608, "valence": 0.5650232772418887, "acousticness": 0.667902097856006, "popularity": 50.0}, {"id": 109, "title": "Endhuko Video Song | Telugu Latest Video Songs | Ram Charan | Sri Balaji Video", "artist": "Chirutha Songs", "album": "YouTube Search", "genre": "General", "duration": 259, "youtube_id": "LFvfVcFhYVU", "tempo": 86.46559685801257, "energy": 0.4475397201298323, "danceability": 0.6859481618015378, "valence": 0.7057302156223753, "acousticness": 0.6537036648791718, "popularity": 50.0}, {"id": 110, "title": "Geetha Govindam Movie | Vijay Devarakonda, Rashmika.", "artist": "Vachindamma Video Song With Lyrics", "album": "YouTube Search", "genre": "General", "duration": 237, "youtube_id": "I8t0VJjEffk", "tempo": 122.95468747784105, "energy": 0.5405837247798149, "danceability": 0.37100279105462636, "valence": 0.374699029701822, "acousticness": 0.37177980771427677, "popularity": 50.0}, {"id": 112, "title": "Video Song | Maa Inti Bangaaram | Samantha | Chinmayi | Punya | Santhosh Narayanan", "artist": "Thassadiya", "album": "YouTube Search", "genre": "General", "duration": 185, "youtube_id": "iJ1fXeDSKXY", "tempo": 138.44740343409077, "energy": 0.5604773330375739, "danceability": 0.4453701236377452, "valence": 0.41762022798165627, "acousticness": 0.4064312671032595, "popularity": 50.0}, {"id": 113, "title": "Dacoit | Adivi Sesh | Mrunal Thakur | Anurag Kashyap |Shaneil Deo| Bheems Music", "artist": "Rubaroo Video Song", "album": "YouTube Search", "genre": "General", "duration": 189, "youtube_id": "ioYVBGJSe0w", "tempo": 103.49088055801843, "energy": 0.4425878172871484, "danceability": 0.6043894483368352, "valence": 0.4851388124912614, "acousticness": 0.5667711222997103, "popularity": 50.0}, {"id": 114, "title": "Manchi Rojulochaie Songs | Santosh | Maruthi | Anup Rubens | Sid Sriram", "artist": "So So Ga Full Video Song", "album": "YouTube Search", "genre": "General", "duration": 172, "youtube_id": "2i4mgssRVlY", "tempo": 84.53275982960216, "energy": 0.4751683564145814, "danceability": 0.7563008092578409, "valence": 0.7458499245295838, "acousticness": 0.5315067435121631, "popularity": 50.0}, {"id": 115, "title": "Siddharth, Genelia I Bommarillu Songs | Telugu Love Songs", "artist": "Apudo Ipudo Full Song", "album": "YouTube Search", "genre": "General", "duration": 259, "youtube_id": "NFbmkNCV4K4", "tempo": 139.63720950988636, "energy": 0.6643753027061702, "danceability": 0.644833489505827, "valence": 0.5493947866046626, "acousticness": 0.21578003683776587, "popularity": 50.0}, {"id": 116, "title": "Monna Kanipinchavu Telugu Video | Suriya | Harris Jayaraj", "artist": "Surya S/o Krishnan", "album": "YouTube Search", "genre": "General", "duration": 308, "youtube_id": "ZlskvfYmj88", "tempo": 100.06562921248252, "energy": 0.35454389555674026, "danceability": 0.5440144262535517, "valence": 0.6632164509067469, "acousticness": 0.4643045825675648, "popularity": 50.0}, {"id": 117, "title": "Manchi Rojulochaie | Santosh | | Maruthi |Anup Rubens | Sid Sriram", "artist": "So So Ga Lyrical Song", "album": "YouTube Search", "genre": "General", "duration": 210, "youtube_id": "MOL1rnvXHgg", "tempo": 128.83096402178907, "energy": 0.36861004519908525, "danceability": 0.5988023383278356, "valence": 0.3294584263098083, "acousticness": 0.685826011756678, "popularity": 50.0}, {"id": 118, "title": "Yedhane Koiyakae Telugu Video | Suriya | Harris Jayaraj", "artist": "Surya S/o Krishnan", "album": "YouTube Search", "genre": "General", "duration": 299, "youtube_id": "4JWqsXck3Yo", "tempo": 102.44813471972068, "energy": 0.6705957422813136, "danceability": 0.39469480956561404, "valence": 0.43054001170199935, "acousticness": 0.6060615545959793, "popularity": 50.0}, {"id": 119, "title": "Billa (Telugu) | Prabhas, Anushka Shetty | Mani Sharma", "artist": "My Name Is Billa 4K Video Song", "album": "YouTube Search", "genre": "General", "duration": 224, "youtube_id": "pfNF2Vqr3l0", "tempo": 104.54967916090804, "energy": 0.5416447692935707, "danceability": 0.5674312303836702, "valence": 0.5108857631566023, "acousticness": 0.3221886159944502, "popularity": 50.0}, {"id": 120, "title": "Manchi Rojulochaie Songs | Santosh | Anup Rubens | Sid SriRam", "artist": "#SoSoGa Full Song With Telugu Lyrics", "album": "YouTube Search", "genre": "General", "duration": 209, "youtube_id": "MOL1rnvXHgg", "tempo": 98.8896539916025, "energy": 0.5149739859422312, "danceability": 0.735905312256387, "valence": 0.7039874083639241, "acousticness": 0.39668693896192353, "popularity": 50.0}, {"id": 121, "title": "Varaha Roopam Video Song| Rishab Shetty| Ajaneesh Loknath| Vijay Kiragandur| Hombale Films", "artist": "Kantara", "album": "YouTube Search", "genre": "General", "duration": 271, "youtube_id": "gH_RYRwVrVM", "tempo": 94.38939897879726, "energy": 0.3513342428845604, "danceability": 0.39326754628926563, "valence": 0.7470670044064216, "acousticness": 0.47505433100986605, "popularity": 50.0}, {"id": 122, "title": "Kantara Chapter 1 | Rishab Shetty, Rukmini | Hombale Films", "artist": "Brahmakalasha Kannada Video Song", "album": "YouTube Search", "genre": "General", "duration": 322, "youtube_id": "palMj0iq-3g", "tempo": 85.72503882221041, "energy": 0.6482335947356921, "danceability": 0.5802482795893545, "valence": 0.4647437471589604, "acousticness": 0.11215860562613389, "popularity": 50.0}, {"id": 123, "title": "Kantara Chapter 1 | Rishab Shetty, Rukmini | Hombale Films", "artist": "Madana Mana Mohini Kannada Video Song", "album": "YouTube Search", "genre": "General", "duration": 223, "youtube_id": "Q9dKU_RhJGQ", "tempo": 127.23519329391313, "energy": 0.7408886052504198, "danceability": 0.5906337056285196, "valence": 0.5442876238761936, "acousticness": 0.6992709843785325, "popularity": 50.0}, {"id": 124, "title": "Andhaala Nadhive", "artist": "B. Ajaneesh Loknath", "album": "YouTube Search", "genre": "General", "duration": 282, "youtube_id": "h7t26XvDheA", "tempo": 122.9858129961402, "energy": 0.44538216289085214, "danceability": 0.3152560700431347, "valence": 0.488960042542845, "acousticness": 0.28038574964367574, "popularity": 50.0}, {"id": 125, "title": "Andhala Nadhive Video Song | Rishab Shetty| Haricharan| Chinmayi | Ajaneesh| Hombale Films", "artist": "Kantara", "album": "YouTube Search", "genre": "General", "duration": 286, "youtube_id": "LofmdmtiRks", "tempo": 134.58878866555358, "energy": 0.41133986079517676, "danceability": 0.706756950808606, "valence": 0.7884150811543527, "acousticness": 0.5717241962096317, "popularity": 50.0}, {"id": 126, "title": "Kantara Chapter 1 | Rishab Shetty, Rukmini | Hombale Films", "artist": "Karma Video Song (Hindi)", "album": "YouTube Search", "genre": "General", "duration": 251, "youtube_id": "lue4nserWek", "tempo": 136.25791291125944, "energy": 0.7003895751895275, "danceability": 0.39408835039505513, "valence": 0.6787071641215146, "acousticness": 0.4827844724333389, "popularity": 50.0}, {"id": 127, "title": "Singara Siriye | Rishab Shetty |Vijay Prakash|Ananya Bhat |Ajaneesh Loknath| Hombale Films", "artist": "Kantara", "album": "YouTube Search", "genre": "General", "duration": 307, "youtube_id": "Q-yJcnX0Qzg", "tempo": 100.4123663001203, "energy": 0.5280401652506514, "danceability": 0.30155343826328057, "valence": 0.42913714860203866, "acousticness": 0.19145609049542425, "popularity": 50.0}, {"id": 128, "title": "Kantara Chapter 1 | Rishab Shetty, Rukmini Vasanth | Hombale Films", "artist": "Karma Video Song (Telugu)", "album": "YouTube Search", "genre": "General", "duration": 251, "youtube_id": "yx4qZ_oa7o8", "tempo": 128.33926865284963, "energy": 0.4649809680745892, "danceability": 0.579424692259053, "valence": 0.6926372420783173, "acousticness": 0.4732038799885149, "popularity": 50.0}, {"id": 129, "title": "Anaganaga  | Sumanth, Kajal Choudhary | Vijay Yesudas | Chandu, Ravi", "artist": "Chudu Chudu Full Video Song", "album": "YouTube Search", "genre": "General", "duration": 224, "youtube_id": "vk9Qs6QzZec", "tempo": 99.31293445910799, "energy": 0.7363608530026513, "danceability": 0.7442641098210081, "valence": 0.5708465626495309, "acousticness": 0.32909541140595094, "popularity": 50.0}, {"id": 130, "title": "Video Song | Bimbisara | Nandamuri Kalyan Ram | M.M. Keeravani | Vassishta", "artist": "Neetho Unte Chalu", "album": "YouTube Search", "genre": "General", "duration": 304, "youtube_id": "oUKiebUofGE", "tempo": 138.64781584050164, "energy": 0.5061585618884721, "danceability": 0.7569837094553075, "valence": 0.44753682611463047, "acousticness": 0.35733237128165285, "popularity": 50.0}, {"id": 131, "title": "JERSEY | Nani, Shraddha Srinath | Anirudh Ravichander | Telugu Song", "artist": "Adhento Gaani Vunnapaatuga", "album": "YouTube Search", "genre": "General", "duration": 293, "youtube_id": "U7uYYwHOcmA", "tempo": 97.69726567678786, "energy": 0.3229147863507522, "danceability": 0.6370019929406464, "valence": 0.7997246047989517, "acousticness": 0.5800817492843924, "popularity": 50.0}, {"id": 132, "title": "Prema Vennela Video (Telugu) | Sai Tej | Devi Sri Prasad", "artist": "Chitralahari", "album": "YouTube Search", "genre": "General", "duration": 210, "youtube_id": "tpvNtKjlf5E", "tempo": 118.88295896958051, "energy": 0.3688191675653667, "danceability": 0.6572713502320371, "valence": 0.6800594574489311, "acousticness": 0.6707667358758991, "popularity": 50.0}, {"id": 133, "title": "First Semester | Anand Deverakonda,Vaishnavi | Aditya Haasan | Hesham", "artist": "Sancharame Video Song | EPIC", "album": "YouTube Search", "genre": "General", "duration": 207, "youtube_id": "G9Stes_DM44", "tempo": 130.0154538311763, "energy": 0.7626575662680708, "danceability": 0.6799929260558026, "valence": 0.7687544925349348, "acousticness": 0.34913845116194087, "popularity": 50.0}, {"id": 134, "title": "Peddi (TELUGU) | Ram Charan | Buchi Babu | Shruthi Haasan | Janhvi | AR Rahman", "artist": "Hellallallo Video", "album": "YouTube Search", "genre": "General", "duration": 237, "youtube_id": "6zDfwVSvyEk", "tempo": 89.71782290648284, "energy": 0.5357559709359119, "danceability": 0.30049735418486895, "valence": 0.39847381576109053, "acousticness": 0.6144141934371158, "popularity": 50.0}, {"id": 135, "title": "Sri Anjaneya dandakam In Telugu | Hanuman Songs", "artist": "మంగళవారం స్పెషల్ LIVE: ఆంజనేయ దండకం", "album": "YouTube Search", "genre": "General", "duration": 180, "youtube_id": "7rEgGp_OfSc", "tempo": 111.05739339279842, "energy": 0.5762218776131707, "danceability": 0.5894787745976984, "valence": 0.680973938912693, "acousticness": 0.23556065758695488, "popularity": 50.0}, {"id": 136, "title": "Lyrical | The Paradise | Nani | Anirudh Ravichander | Srikanth Odela", "artist": "Aaya Sher", "album": "YouTube Search", "genre": "General", "duration": 297, "youtube_id": "iAtoZar5W58", "tempo": 138.73493393520872, "energy": 0.39990448857435273, "danceability": 0.5385177195042794, "valence": 0.6473620749352437, "acousticness": 0.5236372702754599, "popularity": 50.0}, {"id": 137, "title": "4K | Happy Video Songs | Allu Arjun, Genelia | Yuvan Shankar Raja", "artist": "Egirey Mabbulona Full Video Song", "album": "YouTube Search", "genre": "General", "duration": 263, "youtube_id": "riUBONxLABg", "tempo": 127.05645799631577, "energy": 0.6422906128317034, "danceability": 0.40413195599642665, "valence": 0.3017236100990652, "acousticness": 0.685209908145051, "popularity": 50.0}, {"id": 138, "title": "Kaka Malik | Amit Baisla | OFFICIAL VIDEO | New Haryanvi Song 2024", "artist": "Telli Hai Hum", "album": "YouTube Search", "genre": "General", "duration": 249, "youtube_id": "qzQ7r-O__Bc", "tempo": 107.40749901387048, "energy": 0.41761567320893234, "danceability": 0.44341081963052814, "valence": 0.5485523055977459, "acousticness": 0.1935675725157269, "popularity": 50.0}, {"id": 139, "title": "Kaka Malik | Amit Baisla | Official Vdeo | New Haryanvi Song 2025", "artist": "TeLLi Kon Kahvega", "album": "YouTube Search", "genre": "General", "duration": 279, "youtube_id": "tjDZ4eAsWf4", "tempo": 89.69080634837954, "energy": 0.6809643194387626, "danceability": 0.36224472665788443, "valence": 0.49596763270126376, "acousticness": 0.5590586882298132, "popularity": 50.0}, {"id": 140, "title": "Kaka Malik | Amit Baisla | OFFICIAL VIDEO | New Haryanvi Song  2024", "artist": "Telli Jati", "album": "YouTube Search", "genre": "General", "duration": 215, "youtube_id": "b_bwcfU6szM", "tempo": 137.85847133028147, "energy": 0.777048344082504, "danceability": 0.6327556406443863, "valence": 0.36154759043232304, "acousticness": 0.2224848759898641, "popularity": 50.0}, {"id": 141, "title": "Jai Lava Kusa Songs | Jr NTR, Raashi Khanna, DSP | Telugu Songs 2017", "artist": "Nee Kallalona Full Video Song", "album": "YouTube Search", "genre": "General", "duration": 208, "youtube_id": "BrrWNfjgHGs", "tempo": 111.22536533464887, "energy": 0.6862386599442152, "danceability": 0.605661203342069, "valence": 0.7408730040708293, "acousticness": 0.46719707312909353, "popularity": 50.0}, {"id": 142, "title": "Jalsa Movie | Pawan Kalyan, Ileana | Devi Sri Prasad |Trivikram", "artist": "Gallo Telinattunde Full Video Song", "album": "YouTube Search", "genre": "General", "duration": 299, "youtube_id": "NXkM-loOgzQ", "tempo": 134.91106289142135, "energy": 0.699692063268301, "danceability": 0.7704079854479103, "valence": 0.46099090722758057, "acousticness": 0.14875712773948693, "popularity": 50.0}, {"id": 143, "title": "Telugu Melody Songs", "artist": "#TeliyadeTeliyade Full Video Song |MilesofLove |Sid Sriram |Abhinav Medishetti", "album": "YouTube Search", "genre": "General", "duration": 278, "youtube_id": "llqWa8gukho", "tempo": 121.2274800500381, "energy": 0.5459721494375778, "danceability": 0.5297693324183785, "valence": 0.3429243745645555, "acousticness": 0.23775884085981877, "popularity": 50.0}, {"id": 144, "title": "Video Song | Janma Janmada Anubandha | Ananthnag | Jayanthi", "artist": "Thangaliyalli Naanu Teli Bande", "album": "YouTube Search", "genre": "General", "duration": 270, "youtube_id": "oI8JTyg2BMw", "tempo": 127.08385479120534, "energy": 0.6968337210673372, "danceability": 0.6699606750912722, "valence": 0.5278327199333451, "acousticness": 0.4276656398390585, "popularity": 50.0}, {"id": 145, "title": "Thangaliyalli | Hd Video Song | Sudeepa | Aindrita Ray | Shreya Ghoshal |  Karthik", "artist": "Viraparampare", "album": "YouTube Search", "genre": "General", "duration": 290, "youtube_id": "6khldRge1zs", "tempo": 133.427065245568, "energy": 0.3332920620169548, "danceability": 0.5298112413086262, "valence": 0.5281928645898476, "acousticness": 0.5119529572740006, "popularity": 50.0}, {"id": 146, "title": "#Khesari Lal Yadav New Song | तेल | #Neha Raj | #Yamini Singh | Tel", "artist": "#Video", "album": "YouTube Search", "genre": "General", "duration": 236, "youtube_id": "RTnosQARfLs", "tempo": 88.50296646299961, "energy": 0.31959176831266406, "danceability": 0.6961998809034207, "valence": 0.7893211443605903, "acousticness": 0.68765461686902, "popularity": 50.0}, {"id": 147, "title": "TEL TAMAKHU", "artist": "Amit Saini Rohtakiya", "album": "YouTube Search", "genre": "General", "duration": 163, "youtube_id": "Xbxt8tq9Uz0", "tempo": 95.37364419646168, "energy": 0.6068472887724434, "danceability": 0.6307201298397656, "valence": 0.5279942524151646, "acousticness": 0.18926219201042632, "popularity": 50.0}, {"id": 148, "title": "Chiru Chiru Video | Yuvanshankar | Karthi", "artist": "Awaara", "album": "YouTube Search", "genre": "General", "duration": 273, "youtube_id": "hCt-H4-5wco", "tempo": 85.25124248589701, "energy": 0.7425988760807354, "danceability": 0.7632839188269135, "valence": 0.7843652458038648, "acousticness": 0.3469633089617541, "popularity": 50.0}, {"id": 149, "title": "Amit Saini Rohtakiya | RME | New Haryanvi Song 2026", "artist": "Tel Tamakhu Sachin Jaat", "album": "YouTube Search", "genre": "General", "duration": 172, "youtube_id": "Xbxt8tq9Uz0", "tempo": 137.24975092126056, "energy": 0.5670333715265544, "danceability": 0.5189485302666327, "valence": 0.5520883139153562, "acousticness": 0.5771362745676443, "popularity": 50.0}, {"id": 150, "title": "Mohd Rafi | Pyaasa (1957) Hindi Classic Songs", "artist": "Sar Jo Tera Chakraye Color Song : Johnny Walker", "album": "YouTube Search", "genre": "General", "duration": 285, "youtube_id": "FPmJzFCHoUw", "tempo": 137.99388381990514, "energy": 0.7180860772304349, "danceability": 0.7133606317902905, "valence": 0.3686826181612627, "acousticness": 0.3143249360220267, "popularity": 50.0}, {"id": 151, "title": "Thandel | Naga Chaitanya, Sai Pallavi | Devi Sri Prasad", "artist": "Hilesso Hilessa Full Video Song", "album": "YouTube Search", "genre": "General", "duration": 237, "youtube_id": "Jq87evfwY9Q", "tempo": 99.0697208613884, "energy": 0.3389904383224532, "danceability": 0.49153694442775964, "valence": 0.3400549702813407, "acousticness": 0.699467207712728, "popularity": 50.0}, {"id": 152, "title": "Telusa Telusa Full Video Song || Sarrainodu  || Allu Arjun , Rakul Preet, Catherine Tresa", "artist": "Geetha Arts", "album": "YouTube Search", "genre": "General", "duration": 244, "youtube_id": "qaU03QRrcPs", "tempo": 130.98889852611097, "energy": 0.7048033104384333, "danceability": 0.4785548589165686, "valence": 0.5810524639628236, "acousticness": 0.6588981603251179, "popularity": 50.0}, {"id": 153, "title": "Devara Second Single | NTR | Janhvi Kapoor | Anirudh Ravichander | Shilpa Rao | 27 Sep", "artist": "Chuttamalle", "album": "YouTube Search", "genre": "General", "duration": 225, "youtube_id": "5vsOv_bcnhs", "tempo": 118.42056122136071, "energy": 0.738145696043959, "danceability": 0.4627010424173646, "valence": 0.7852160658252737, "acousticness": 0.5263056713123032, "popularity": 50.0}, {"id": 154, "title": "\"The Letter T Song\" by ABCmouse.com", "artist": "ABCmouse", "album": "YouTube Search", "genre": "General", "duration": 146, "youtube_id": "WDjlIdI_Wdc", "tempo": 97.442703886041, "energy": 0.5236420780387016, "danceability": 0.6951923126952568, "valence": 0.6346616489942392, "acousticness": 0.3935826090144794, "popularity": 50.0}, {"id": 155, "title": "Letter T Song", "artist": "Have Fun Teaching", "album": "YouTube Search", "genre": "General", "duration": 215, "youtube_id": "M5gUg06rock", "tempo": 92.20504173858251, "energy": 0.6690876980504704, "danceability": 0.5603755559272314, "valence": 0.3684274159005622, "acousticness": 0.11862020541649637, "popularity": 50.0}, {"id": 156, "title": "Learn the Alphabet", "artist": "The Letter T Song", "album": "YouTube Search", "genre": "General", "duration": 100, "youtube_id": "HHEqOLZ0hr4", "tempo": 124.94370770543038, "energy": 0.5801974842399203, "danceability": 0.4254075072329459, "valence": 0.7893263153238557, "acousticness": 0.203511325254559, "popularity": 50.0}, {"id": 157, "title": "Let's Learn About The Alphabet | Phonics Song for Kids | Jack Hartmann", "artist": "Learn The Letter T", "album": "YouTube Search", "genre": "General", "duration": 239, "youtube_id": "1yl9p--gElU", "tempo": 88.32610384033185, "energy": 0.7352110972155949, "danceability": 0.7827920750966957, "valence": 0.7518629578131306, "acousticness": 0.475229056490562, "popularity": 50.0}, {"id": 158, "title": "The Letter T Song", "artist": "Miss Molly", "album": "YouTube Search", "genre": "General", "duration": 188, "youtube_id": "5jvMkJEd020", "tempo": 131.46583189056184, "energy": 0.38450643064721307, "danceability": 0.6645708444907479, "valence": 0.3534674678297991, "acousticness": 0.5430504433254715, "popularity": 50.0}, {"id": 159, "title": "Netflix Jr", "artist": "ABC Song: The Letter T, \"Time For T\" by StoryBots", "album": "YouTube Search", "genre": "General", "duration": 79, "youtube_id": "iPHaID7o_5U", "tempo": 132.32743944227738, "energy": 0.4384753642104853, "danceability": 0.6071955311431345, "valence": 0.7099287998068793, "acousticness": 0.11738434344115244, "popularity": 50.0}, {"id": 160, "title": "The T Song", "artist": "KidsTV123", "album": "YouTube Search", "genre": "General", "duration": 190, "youtube_id": "JB8Nb1iVhRs", "tempo": 99.00657114778309, "energy": 0.5450736325954478, "danceability": 0.5797892340997977, "valence": 0.7491002570362447, "acousticness": 0.26796497675248515, "popularity": 50.0}, {"id": 161, "title": "Letter T Song", "artist": "Have Fun Teaching", "album": "YouTube Search", "genre": "General", "duration": 215, "youtube_id": "EfSXmdU5mFY", "tempo": 116.92077654596181, "energy": 0.38315325037149467, "danceability": 0.6356809956118985, "valence": 0.6411634048679109, "acousticness": 0.6737205308955243, "popularity": 50.0}, {"id": 162, "title": "Peddi (TELUGU) | Ram Charan | Buchi Babu | Shruthi Haasan | Janhvi | AR Rahman", "artist": "Hellallallo Video", "album": "YouTube Search", "genre": "General", "duration": 237, "youtube_id": "875uOrLjReE", "tempo": 113.22858323601275, "energy": 0.5901953894348821, "danceability": 0.6719559718856242, "valence": 0.5832646342898782, "acousticness": 0.6601884328323288, "popularity": 50.0}, {"id": 163, "title": "First Semester | Anand Deverakonda,Vaishnavi | Aditya Haasan | Hesham", "artist": "Sancharame Video Song | EPIC", "album": "YouTube Search", "genre": "General", "duration": 207, "youtube_id": "G9Stes_DM44", "tempo": 93.92866188072979, "energy": 0.619195406295867, "danceability": 0.5747524571027663, "valence": 0.7701369044785662, "acousticness": 0.2075540449724145, "popularity": 50.0}, {"id": 164, "title": "Video Song | Court | Priyadarshi, Harsh Roshan, Sridevi | Vijai Bulganin | Ram Jagadeesh", "artist": "Premalo", "album": "YouTube Search", "genre": "General", "duration": 299, "youtube_id": "-vfavvPmLfM", "tempo": 88.67666872182853, "energy": 0.6172967048246085, "danceability": 0.3293603518094538, "valence": 0.518555554775043, "acousticness": 0.2590598778535637, "popularity": 50.0}, {"id": 165, "title": "Kumkumala Video | Ranbir | Alia | Pritam | Sid Sriram | Chandrabose", "artist": "BRAHMĀSTRA (Telugu)", "album": "YouTube Search", "genre": "General", "duration": 168, "youtube_id": "5kzM6m33DTo", "tempo": 98.22092805619137, "energy": 0.5516765322705843, "danceability": 0.44487307752910876, "valence": 0.33454023507139097, "acousticness": 0.2405017084059604, "popularity": 0.0}, {"id": 166, "title": "Andhra King Taluka | Ram Pothineni | Bhagyashri Borse | Mahesh Babu P", "artist": "Chinni Gundelo Video", "album": "YouTube Search", "genre": "General", "duration": 206, "youtube_id": "s9NBDKfVg1c", "tempo": 92.12730494719418, "energy": 0.7286062290237435, "danceability": 0.5887791274842097, "valence": 0.7614337834644711, "acousticness": 0.11496105287835433, "popularity": 50.0}, {"id": 167, "title": "Ustaad Bhagat Singh | Power Star Pawan Kalyan, Sreeleela | Harish Shankar", "artist": "Ee Manase Video Song", "album": "YouTube Search", "genre": "General", "duration": 265, "youtube_id": "-xB_Nnm7CHU", "tempo": 81.63570153286632, "energy": 0.4649034896692435, "danceability": 0.3253487038643621, "valence": 0.6716200824526333, "acousticness": 0.4438988357489163, "popularity": 50.0}, {"id": 168, "title": "Dacoit | Adivi Sesh | Mrunal Thakur | Anurag Kashyap |Shaneil Deo| Bheems Music", "artist": "Rubaroo Video Song", "album": "YouTube Search", "genre": "General", "duration": 189, "youtube_id": "ThR0iWwVCJw", "tempo": 104.17194750656724, "energy": 0.42164626260683047, "danceability": 0.7893823386946217, "valence": 0.3967155658391749, "acousticness": 0.23642260884726884, "popularity": 50.0}, {"id": 169, "title": "Ananthika Sanilkumar | Phanindra Narsetti | Hesham | Chithra", "artist": "Full Video: Parichayamila 8 Vasantalu", "album": "YouTube Search", "genre": "General", "duration": 202, "youtube_id": "8PXUzdXxrl8", "tempo": 139.8129042683767, "energy": 0.727516515443579, "danceability": 0.5210167307182347, "valence": 0.37425959297232386, "acousticness": 0.2952348189598181, "popularity": 50.0}, {"id": 171, "title": "Hi Nanna | Nani,Mrunal Thakur | Shouryuv | Hesham Abdul Wahab", "artist": "Full Video: Samayama Song", "album": "YouTube Search", "genre": "General", "duration": 201, "youtube_id": "Zz1M1iVEkwM", "tempo": 135.91020195411406, "energy": 0.3394724756545553, "danceability": 0.6407332838216695, "valence": 0.7517513313573061, "acousticness": 0.44404798913421595, "popularity": 50.0}, {"id": 172, "title": "Lyrical | The Paradise | Nani | Anirudh Ravichander | Srikanth Odela", "artist": "Aaya Sher", "album": "YouTube Search", "genre": "General", "duration": 297, "youtube_id": "iAtoZar5W58", "tempo": 121.15927892823993, "energy": 0.6786781346920342, "danceability": 0.39250232066229973, "valence": 0.5624361098799511, "acousticness": 0.5399539833017815, "popularity": 50.0}, {"id": 173, "title": "Dude | Pradeep Ranganathan, Mamitha Baiju | @SaiAbhyankkar | Keerthiswaran", "artist": "Singari Video Song", "album": "YouTube Search", "genre": "General", "duration": 207, "youtube_id": "Ja7Yz0MPbwI", "tempo": 118.5405882687538, "energy": 0.6853801338089224, "danceability": 0.7257632537954005, "valence": 0.5706023769882148, "acousticness": 0.46964503644577504, "popularity": 50.0}];
+
+        function getCosineSimilarity(v1, v2) {
+            let dotProduct = 0.0;
+            let normA = 0.0;
+            let normB = 0.0;
+            for (let i = 0; i < v1.length; i++) {
+                dotProduct += v1[i] * v2[i];
+                normA += v1[i] * v1[i];
+                normB += v2[i] * v2[i];
+            }
+            if (normA === 0.0 || normB === 0.0) return 0.0;
+            return dotProduct / (Math.sqrt(normA) * Math.sqrt(normB));
+        }
+
+        function normalizeFeatures(song) {
+            return [
+                (song.tempo || 120.0) / 200.0,
+                song.energy || 0.5,
+                song.danceability || 0.5,
+                song.valence || 0.5,
+                song.acousticness || 0.5
+            ];
+        }
+    
+        // State variables
+        let authToken = localStorage.getItem('token') || '';
+        let currentUser = null;
+        let currentSong = null;
+        let isPlaying = false;
+        let playerInterval = null;
+        let playbackProgress = 0; // percentage
+        let allSongs = [];
+        let playlists = [];
+        let activeGenres = [];
+        let synthPlayer = null;
+        let ytPlayer = null;
+        let ytPlayerReady = false;
+        let playbackSource = 'none'; // 'none', 'youtube', 'synth'
+        let searchTimeout = null;
+        let failedIds = [];
+
+        function showYoutubePlayer(visible) {
+            const wrapper = document.getElementById('yt-player-wrapper');
+            if (wrapper) {
+                if (visible) {
+                    wrapper.style.opacity = '1';
+                    wrapper.style.pointerEvents = 'auto';
+                } else {
+                    wrapper.style.opacity = '0';
+                    wrapper.style.pointerEvents = 'none';
+                }
+            }
+        }
+
+        function updateYouTubeLinks(youtube_id) {
+            const playerLink = document.getElementById('player-youtube-link');
+            const detailLink = document.getElementById('detail-youtube-link');
+            
+            if (youtube_id) {
+                const url = `https://www.youtube.com/watch?v=${youtube_id}`;
+                if (playerLink) {
+                    playerLink.href = url;
+                    playerLink.style.display = 'inline-flex';
+                }
+                if (detailLink) {
+                    detailLink.href = url;
+                    detailLink.style.display = 'inline-flex';
+                }
+            } else {
+                if (playerLink) {
+                    playerLink.style.display = 'none';
+                    playerLink.href = '#';
+                }
+                if (detailLink) {
+                    detailLink.style.display = 'none';
+                    detailLink.href = '#';
+                }
+            }
+        }
+
+        // Load YouTube IFrame Player API script asynchronously
+        (function() {
+            const tag = document.createElement('script');
+            tag.src = "https://www.youtube.com/iframe_api";
+            const firstScriptTag = document.getElementsByTagName('script')[0];
+            firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+        })();
+
+        // YouTube Player callback
+        window.onYouTubeIframeAPIReady = function() {
+            ytPlayer = new YT.Player('yt-player-placeholder', {
+                height: '100%',
+                width: '100%',
+                videoId: '',
+                playerVars: {
+                    'playsinline': 1,
+                    'controls': 0,
+                    'disablekb': 1,
+                    'fs': 0,
+                    'rel': 0,
+                    'modestbranding': 1,
+                    'enablejsapi': 1,
+                    'enablejsapi': 1
+                },
+                events: {
+                    'onReady': (event) => {
+                        ytPlayerReady = true;
+                        ytPlayer.setVolume(50);
+                    },
+                    'onStateChange': (event) => {
+                        if (event.data === YT.PlayerState.ENDED) {
+                            handleSongFinish();
+                        }
+                    },
+                    'onError': async (event) => {
+                        console.error('YouTube Player Error:', event.data);
+                        if (currentSong && currentSong.youtube_id && playbackSource === 'youtube') {
+                            const failedId = currentSong.youtube_id;
+                            if (!failedIds.includes(failedId)) {
+                                failedIds.push(failedId);
+                            }
+                            
+                            if (failedIds.length < 3) {
+                                try {
+                                    const res = await apiRequest(`/api/songs/${currentSong.id}/youtube?blacklist=${failedIds.join(',')}`, 'GET');
+                                    if (res && res.youtube_id && !failedIds.includes(res.youtube_id)) {
+                                        currentSong.youtube_id = res.youtube_id;
+                                        // Reload
+                                        ytPlayer.loadVideoById(res.youtube_id);
+                                        
+                                        // Update cover image on the bottom player
+                                        document.getElementById('player-cover-art').innerHTML = `<img src="https://img.youtube.com/vi/${res.youtube_id}/hqdefault.jpg" style="width: 100%; height: 100%; object-fit: cover; border-radius: 4px;">`;
+                                        
+                                        // Update rotating vinyl center label with cover art
+                                        const vinylCenter = document.querySelector('#vinyl-disc .detail-vinyl-center');
+                                        if (vinylCenter) {
+                                            vinylCenter.style.backgroundImage = `url('https://img.youtube.com/vi/${res.youtube_id}/hqdefault.jpg')`;
+                                        }
+                                        
+                                        // Update YouTube link
+                                        updateYouTubeLinks(res.youtube_id);
+                                        return;
+                                    }
+                                } catch (err) {
+                                    console.error('Failed to get alternative YouTube ID:', err);
+                                }
+                            }
+                        }
+                        if (currentSong) {
+                            showToast('Updating catalog: loading next track...', false);
+                            const songIdToRemove = currentSong.id;
+                            try {
+                                await apiRequest(`/api/songs/${songIdToRemove}`, 'DELETE');
+                                loadDashboardData();
+                                playRandomTrack();
+                                return;
+                            } catch (err) {
+                                console.error('Failed to remove restricted song:', err);
+                            }
+                        }
+                        fallbackToSynth();
+                    }
+                }
+            });
+        };
+
+        // Web Audio Synthesizer to generate real dynamic sound/music using song attributes
+        class MusicSynth {
+            constructor(tempo, energy, danceability, valence, acousticness) {
+                this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+                
+                // Setup visualizer AnalyserNode
+                this.analyser = this.ctx.createAnalyser();
+                this.analyser.fftSize = 64; 
+                this.analyser.connect(this.ctx.destination);
+                
+                this.tempo = tempo || 120;
+                this.energy = energy || 0.5;
+                this.danceability = danceability || 0.5;
+                this.valence = valence || 0.5;
+                this.acousticness = acousticness || 0.5;
+                
+                this.isPlaying = false;
+                this.step = 0;
+                this.nextNoteTime = 0.0;
+                this.timerId = null;
+                
+                // Scale based on valence
+                if (this.valence > 0.5) {
+                    this.scale = [261.63, 293.66, 329.63, 392.00, 440.00, 523.25, 587.33, 659.25];
+                } else {
+                    this.scale = [261.63, 311.13, 349.23, 392.00, 466.16, 523.25, 622.25, 698.46];
+                }
+                
+                // Bass scale
+                if (this.valence > 0.5) {
+                    this.bassScale = [65.41, 73.42, 82.41, 98.00];
+                } else {
+                    this.bassScale = [65.41, 77.78, 87.31, 98.00];
+                }
+            }
+            
+            start() {
+                if (this.isPlaying) return;
+                this.isPlaying = true;
+                if (this.ctx.state === 'suspended') {
+                    this.ctx.resume();
+                }
+                this.nextNoteTime = this.ctx.currentTime;
+                this.scheduler();
+            }
+            
+            stop() {
+                this.isPlaying = false;
+                if (this.timerId) {
+                    clearTimeout(this.timerId);
+                    this.timerId = null;
+                }
+                if (this.ctx) {
+                    try {
+                        this.ctx.close();
+                    } catch (e) {}
+                }
+            }
+            
+            scheduler() {
+                if (!this.isPlaying) return;
+                while (this.nextNoteTime < this.ctx.currentTime + 0.1) {
+                    this.scheduleNextStep(this.step, this.nextNoteTime);
+                    this.advanceStep();
+                }
+                this.timerId = setTimeout(() => this.scheduler(), 25);
+            }
+            
+            advanceStep() {
+                const secondsPerBeat = 60.0 / this.tempo;
+                const stepDuration = 0.25 * secondsPerBeat;
+                this.nextNoteTime += stepDuration;
+                this.step = (this.step + 1) % 16;
+            }
+            
+            scheduleNextStep(step, time) {
+                if ((step % 4 === 0) && (this.danceability > 0.3)) {
+                    this.playKick(time);
+                }
+                if ((step % 4 === 2) && (this.energy > 0.4)) {
+                    this.playHihat(time);
+                }
+                if ((step === 4 || step === 12) && (this.danceability > 0.5)) {
+                    this.playSnare(time);
+                }
+                const melodySteps = [0, 2, 4, 6, 8, 10, 12, 14];
+                if (melodySteps.includes(step)) {
+                    const prob = 0.2 + (this.energy * 0.4);
+                    if (Math.random() < prob) {
+                        const noteIndex = Math.floor(Math.random() * this.scale.length);
+                        const freq = this.scale[noteIndex];
+                        this.playSynthNote(freq, time);
+                    }
+                }
+                if (step === 0 || step === 6 || step === 8 || step === 14) {
+                    const bassIndex = Math.floor(Math.random() * this.bassScale.length);
+                    const freq = this.bassScale[bassIndex];
+                    this.playBassNote(freq, time);
+                }
+            }
+            
+            playKick(time) {
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.connect(gain);
+                gain.connect(this.analyser);
+                osc.frequency.setValueAtTime(150, time);
+                osc.frequency.exponentialRampToValueAtTime(0.01, time + 0.3);
+                const volume = (this.danceability * 0.25) + 0.05;
+                gain.gain.setValueAtTime(volume, time);
+                gain.gain.exponentialRampToValueAtTime(0.01, time + 0.3);
+                osc.start(time);
+                osc.stop(time + 0.3);
+            }
+            
+            playHihat(time) {
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'triangle';
+                osc.connect(gain);
+                gain.connect(this.analyser);
+                osc.frequency.setValueAtTime(10000, time);
+                const volume = (this.energy * 0.04) + 0.01;
+                gain.gain.setValueAtTime(volume, time);
+                gain.gain.exponentialRampToValueAtTime(0.001, time + 0.05);
+                osc.start(time);
+                osc.stop(time + 0.05);
+            }
+            
+            playSnare(time) {
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'triangle';
+                osc.connect(gain);
+                gain.connect(this.analyser);
+                osc.frequency.setValueAtTime(180, time);
+                osc.frequency.exponentialRampToValueAtTime(80, time + 0.15);
+                const volume = 0.08;
+                gain.gain.setValueAtTime(volume, time);
+                gain.gain.exponentialRampToValueAtTime(0.001, time + 0.15);
+                osc.start(time);
+                osc.stop(time + 0.15);
+            }
+            
+            playSynthNote(freq, time) {
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.connect(gain);
+                gain.connect(this.analyser);
+                if (this.acousticness > 0.6) {
+                    osc.type = 'sine';
+                } else if (this.energy > 0.7) {
+                    osc.type = 'sawtooth';
+                } else {
+                    osc.type = 'triangle';
+                }
+                osc.frequency.setValueAtTime(freq, time);
+                if (this.acousticness > 0.4) {
+                    const filter = this.ctx.createBiquadFilter();
+                    filter.type = 'lowpass';
+                    filter.frequency.setValueAtTime(1200 - (this.acousticness * 800), time);
+                    osc.disconnect(gain);
+                    osc.connect(filter);
+                    filter.connect(gain);
+                }
+                const volume = (1.0 - this.acousticness * 0.5) * 0.06;
+                gain.gain.setValueAtTime(0, time);
+                gain.gain.linearRampToValueAtTime(volume, time + 0.03);
+                gain.gain.exponentialRampToValueAtTime(0.001, time + 0.35);
+                osc.start(time);
+                osc.stop(time + 0.4);
+            }
+            
+            playBassNote(freq, time) {
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'sine';
+                osc.connect(gain);
+                gain.connect(this.analyser);
+                osc.frequency.setValueAtTime(freq, time);
+                const volume = 0.12;
+                gain.gain.setValueAtTime(volume, time);
+                gain.gain.exponentialRampToValueAtTime(0.001, time + 0.5);
+                osc.start(time);
+                osc.stop(time + 0.55);
+            }
+        }
+
+        // Custom Animation State & Logic
+        
+        // 1. Radar Chart Setup
+        let radarAnimationId = null;
+        let radarTargetValues = [0, 0, 0, 0, 0];
+        let radarCurrentValues = [0, 0, 0, 0, 0];
+        const radarLabels = ['Tempo', 'Energy', 'Dance', 'Valence', 'Acoustic'];
+
+        function drawRadarChart() {
+            const canvas = document.getElementById('radar-chart');
+            if (!canvas) return;
+            const ctx = canvas.getContext('2d');
+            const width = canvas.width;
+            const height = canvas.height;
+            const cx = width / 2;
+            const cy = height / 2;
+            const r = Math.min(width, height) / 2 - 15;
+            
+            ctx.clearRect(0, 0, width, height);
+            
+            // Circular concentric grid lines
+            const levels = 3;
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.05)';
+            ctx.lineWidth = 1;
+            
+            for (let j = 1; j <= levels; j++) {
+                const levelRadius = (r / levels) * j;
+                ctx.beginPath();
+                for (let i = 0; i < 5; i++) {
+                    const angle = (i * 2 * Math.PI / 5) - Math.PI / 2;
+                    const x = cx + levelRadius * Math.cos(angle);
+                    const y = cy + levelRadius * Math.sin(angle);
+                    if (i === 0) ctx.moveTo(x, y);
+                    else ctx.lineTo(x, y);
+                }
+                ctx.closePath();
+                ctx.stroke();
+            }
+            
+            // Spokes
+            ctx.beginPath();
+            for (let i = 0; i < 5; i++) {
+                const angle = (i * 2 * Math.PI / 5) - Math.PI / 2;
+                ctx.moveTo(cx, cy);
+                ctx.lineTo(cx + r * Math.cos(angle), cy + r * Math.sin(angle));
+            }
+            ctx.stroke();
+            
+            // Labels
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
+            ctx.font = '10px Plus Jakarta Sans';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            for (let i = 0; i < 5; i++) {
+                const angle = (i * 2 * Math.PI / 5) - Math.PI / 2;
+                const labelDist = r + 10;
+                const x = cx + labelDist * Math.cos(angle);
+                const y = cy + labelDist * Math.sin(angle);
+                
+                if (Math.abs(Math.cos(angle)) < 0.1) {
+                    ctx.textAlign = 'center';
+                } else if (Math.cos(angle) > 0) {
+                    ctx.textAlign = 'left';
+                } else {
+                    ctx.textAlign = 'right';
+                }
+                ctx.fillText(radarLabels[i], x, y);
+            }
+            
+            // Easing / Morphing interpolation
+            let needsUpdate = false;
+            for (let i = 0; i < 5; i++) {
+                const diff = radarTargetValues[i] - radarCurrentValues[i];
+                if (Math.abs(diff) > 0.002) {
+                    radarCurrentValues[i] += diff * 0.08;
+                    needsUpdate = true;
+                } else {
+                    radarCurrentValues[i] = radarTargetValues[i];
+                }
+            }
+            
+            // Render polygon shape
+            ctx.beginPath();
+            for (let i = 0; i < 5; i++) {
+                const val = radarCurrentValues[i];
+                const angle = (i * 2 * Math.PI / 5) - Math.PI / 2;
+                const x = cx + r * val * Math.cos(angle);
+                const y = cy + r * val * Math.sin(angle);
+                if (i === 0) ctx.moveTo(x, y);
+                else ctx.lineTo(x, y);
+            }
+            ctx.closePath();
+            
+            const gradient = ctx.createRadialGradient(cx, cy, 0, cx, cy, r);
+            gradient.addColorStop(0, 'rgba(255, 255, 255, 0.05)');
+            gradient.addColorStop(1, 'rgba(255, 255, 255, 0.22)');
+            ctx.fillStyle = gradient;
+            ctx.fill();
+            
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.85)';
+            ctx.lineWidth = 2.5;
+            ctx.shadowBlur = 12;
+            ctx.shadowColor = 'rgba(255, 255, 255, 0.25)';
+            ctx.stroke();
+            ctx.shadowBlur = 0;
+            
+            // Data nodes
+            ctx.fillStyle = '#f8fafc';
+            for (let i = 0; i < 5; i++) {
+                const val = radarCurrentValues[i];
+                const angle = (i * 2 * Math.PI / 5) - Math.PI / 2;
+                const x = cx + r * val * Math.cos(angle);
+                const y = cy + r * val * Math.sin(angle);
+                ctx.beginPath();
+                ctx.arc(x, y, 3.5, 0, 2 * Math.PI);
+                ctx.fill();
+            }
+            
+            if (needsUpdate) {
+                radarAnimationId = requestAnimationFrame(drawRadarChart);
+            } else {
+                radarAnimationId = null;
+            }
+        }
+
+        function updateRadarValues(song) {
+            const normTempo = Math.min(1.0, Math.max(0.1, (song.tempo || 120) / 200));
+            const energy = song.energy || 0.5;
+            const dance = song.danceability || 0.5;
+            const valence = song.valence !== undefined ? song.valence : 0.5;
+            const acoustic = song.acousticness || 0.5;
+            
+            radarTargetValues = [normTempo, energy, dance, valence, acoustic];
+            
+            if (!radarAnimationId) {
+                drawRadarChart();
+            }
+        }
+
+        // 2. Vinyl inertia-based turntable rotation spin loop
+        let vinylAngle = 0;
+        let vinylSpeed = 0;
+
+        function updateVinylSpin() {
+            const vinyl = document.getElementById('vinyl-disc');
+            if (vinyl) {
+                const targetSpeed = isPlaying ? 0.8 : 0; 
+                vinylSpeed += (targetSpeed - vinylSpeed) * 0.05; // smooth speed adjustment
+                
+                if (vinylSpeed > 0.005) {
+                    vinylAngle = (vinylAngle + vinylSpeed) % 360;
+                    vinyl.style.transform = `rotate(${vinylAngle}deg)`;
+                }
+            }
+            requestAnimationFrame(updateVinylSpin);
+        }
+
+        // 3. Float notes particle canvas emitter
+        let particles = [];
+        const noteSymbols = ['♫', '♪', '♬', '♩', '✦', '✧'];
+
+        class Particle {
+            constructor(x, y) {
+                this.x = x;
+                this.y = y;
+                this.vx = (Math.random() - 0.5) * 1.6;
+                this.vy = -Math.random() * 1.5 - 0.6;
+                this.size = Math.random() * 8 + 11; 
+                this.symbol = noteSymbols[Math.floor(Math.random() * noteSymbols.length)];
+                this.alpha = 1.0;
+                this.decay = Math.random() * 0.012 + 0.006;
+                this.hue = Math.random() * 360;
+            }
+
+            update() {
+                this.x += this.vx;
+                this.y += this.vy;
+                this.alpha -= this.decay;
+            }
+
+            draw(ctx) {
+                ctx.save();
+                ctx.globalAlpha = this.alpha;
+                ctx.fillStyle = `rgba(255, 255, 255, ${this.alpha})`;
+                ctx.font = `${this.size}px var(--font-display)`;
+                ctx.shadowBlur = 8;
+                ctx.shadowColor = `rgba(255, 255, 255, 0.3)`;
+                ctx.fillText(this.symbol, this.x, this.y);
+                ctx.restore();
+            }
+        }
+
+        function handleParticles() {
+            const canvas = document.getElementById('particles-canvas');
+            if (canvas) {
+                const ctx = canvas.getContext('2d');
+                if (canvas.width !== canvas.offsetWidth || canvas.height !== canvas.offsetHeight) {
+                    canvas.width = canvas.offsetWidth;
+                    canvas.height = canvas.offsetHeight;
+                }
+                
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                
+                if (isPlaying && Math.random() < 0.12) {
+                    particles.push(new Particle(canvas.width / 2, canvas.height / 2));
+                }
+                
+                for (let i = particles.length - 1; i >= 0; i--) {
+                    const p = particles[i];
+                    p.update();
+                    if (p.alpha <= 0) {
+                        particles.splice(i, 1);
+                    } else {
+                        p.draw(ctx);
+                    }
+                }
+            }
+            requestAnimationFrame(handleParticles);
+        }
+
+        // 4. Audio wave visualizer updates loop (Synth Analyser & YouTube procedurals)
+        function updateVisualizer() {
+            const barElements = document.querySelectorAll('.audio-bar');
+            
+            if (barElements.length > 0) {
+                if (isPlaying && playbackSource === 'synth' && synthPlayer && synthPlayer.analyser) {
+                    const bufferLength = synthPlayer.analyser.frequencyBinCount;
+                    const dataArray = new Uint8Array(bufferLength);
+                    synthPlayer.analyser.getByteFrequencyData(dataArray);
+                    
+                    const totalBars = barElements.length;
+                    for (let i = 0; i < totalBars; i++) {
+                        // Spread selection across low/mid bins
+                        const dataIndex = Math.min(bufferLength - 1, Math.floor((i % (totalBars/2)) * (bufferLength / (totalBars/2)) * 0.4));
+                        const value = dataArray[dataIndex]; 
+                        const percentage = value / 255;
+                        const height = 4 + percentage * 18;
+                        barElements[i].style.height = `${height}px`;
+                    }
+                } else if (isPlaying && playbackSource === 'youtube' && currentSong) {
+                    const tempo = currentSong.tempo || 120;
+                    const energy = currentSong.energy || 0.5;
+                    const time = Date.now() / 1000;
+                    const bps = tempo / 60; // beats per second
+                    
+                    const totalBars = barElements.length;
+                    for (let i = 0; i < totalBars; i++) {
+                        const phase = (i % (totalBars/2)) * (Math.PI / 2);
+                        const osc = (Math.sin(time * bps * Math.PI * 2 + phase) + 1) / 2;
+                        const noise = Math.random() * energy * 0.25;
+                        const percentage = Math.min(1.0, osc * (0.4 + energy * 0.6) + noise);
+                        const height = 4 + percentage * 18;
+                        barElements[i].style.height = `${height}px`;
+                    }
+                } else {
+                    // Gradual collapse back to flat
+                    for (let i = 0; i < barElements.length; i++) {
+                        const curH = parseFloat(barElements[i].style.height) || 4;
+                        if (curH > 4) {
+                            barElements[i].style.height = `${curH - (curH - 4) * 0.15}px`;
+                        }
+                    }
+                }
+            }
+            requestAnimationFrame(updateVisualizer);
+        }
+
+        // 5. Card dynamic 3D tilt delegates
+        document.addEventListener('mousemove', (e) => {
+            const card = e.target.closest('.song-card');
+            if (!card) return;
+            
+            const rect = card.getBoundingClientRect();
+            const x = e.clientX - rect.left; 
+            const y = e.clientY - rect.top;  
+            
+            const xc = rect.width / 2;
+            const yc = rect.height / 2;
+            
+            const angleX = (yc - y) / 12; // tilt angle
+            const angleY = (x - xc) / 12;
+            
+            card.style.transform = `perspective(1000px) rotateX(${angleX}deg) rotateY(${angleY}deg) scale3d(1.03, 1.03, 1.03)`;
+            
+            const rad = Math.atan2(y - yc, x - xc);
+            const deg = rad * (180 / Math.PI);
+            card.style.setProperty('--reflection-angle', `${deg}deg`);
+            card.style.setProperty('--reflection-opacity', `${Math.min(0.18, Math.hypot(x - xc, y - yc) / xc * 0.18)}`);
+        });
+
+        document.addEventListener('mouseleave', (e) => {
+            const card = e.target.closest('.song-card');
+            if (!card) return;
+            card.style.transform = 'perspective(1000px) rotateX(0deg) rotateY(0deg) scale3d(1, 1, 1)';
+            card.style.setProperty('--reflection-opacity', '0');
+        }, true);
+
+        // App Initialisation
+        window.addEventListener('DOMContentLoaded', () => {
+            // Start loops
+            updateVisualizer();
+            updateVinylSpin();
+            handleParticles();
+            
+            if (authToken) {
+                verifyTokenAndLoadApp();
+            } else {
+                showAuthModal();
+            }
+        });
+
+        // Toast Messages
+        function showToast(text, isError = false) {
+            const toast = document.getElementById('toast-notif');
+            const icon = toast.querySelector('i');
+            
+            toast.className = 'toast';
+            if (isError) {
+                toast.classList.add('error');
+                icon.className = 'fa-solid fa-circle-exclamation';
+            } else {
+                icon.className = 'fa-solid fa-circle-check';
+            }
+            
+            document.getElementById('toast-text').innerText = text;
+            toast.classList.add('show');
+            
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 3000);
+        }
+
+        // Toggle Auth Modal
+        function showAuthModal() {
+            document.getElementById('auth-modal').classList.remove('hidden');
+        }
+
+        function hideAuthModal() {
+            document.getElementById('auth-modal').classList.add('hidden');
+        }
+
+        function switchAuthTab(tab) {
+            const tabs = document.querySelectorAll('.auth-tab');
+            tabs.forEach(t => t.classList.remove('active'));
+            
+            const loginForm = document.getElementById('login-form-div');
+            const regForm = document.getElementById('register-form-div');
+            
+            if (tab === 'login') {
+                tabs[0].classList.add('active');
+                loginForm.style.display = 'flex';
+                regForm.style.display = 'none';
+            } else {
+                tabs[1].classList.add('active');
+                loginForm.style.display = 'none';
+                regForm.style.display = 'flex';
+            }
+        }
+
+        // Fetch wrapper
+        async function apiRequest(path, method = 'GET', body = null) {
+            // Wait slightly to simulate server delay
+            await new Promise(resolve => setTimeout(resolve, 80));
+            
+            try {
+                // Auth check
+                const isAuthPath = path.startsWith('/api/auth');
+                if (!isAuthPath && !authToken) {
+                    throw new Error("Unauthorized");
+                }
+                
+                // 1. LOGIN
+                if (path === '/api/auth/login' && method === 'POST') {
+                    const users = JSON.parse(localStorage.getItem('users') || '[]');
+                    const user = users.find(u => u.email === body.email && u.password === body.password);
+                    if (!user) {
+                        throw new Error('Invalid email or password.');
+                    }
+                    return { access_token: `mock_jwt_${user.id}`, user };
+                }
+                
+                // 2. REGISTER
+                if (path === '/api/auth/register' && method === 'POST') {
+                    const users = JSON.parse(localStorage.getItem('users') || '[]');
+                    if (users.find(u => u.email === body.email)) {
+                        throw new Error('Email already registered.');
+                    }
+                    const newUser = { id: Date.now(), username: body.username, email: body.email, password: body.password };
+                    users.push(newUser);
+                    localStorage.setItem('users', JSON.stringify(users));
+                    return { message: 'Registration successful.' };
+                }
+                
+                // 3. PROFILE
+                if (path === '/api/users/profile' && method === 'GET') {
+                    const tokenParts = authToken.split('_');
+                    const userId = parseInt(tokenParts[tokenParts.length - 1]);
+                    const users = JSON.parse(localStorage.getItem('users') || '[]');
+                    const user = users.find(u => u.id === userId);
+                    if (!user) throw new Error('User not found.');
+                    return user;
+                }
+                
+                // 4. SONGS
+                if (path.startsWith('/api/songs') && method === 'GET') {
+                    if (path.includes('/youtube')) {
+                        // e.g., /api/songs/12/youtube?blacklist=...
+                        const urlParts = path.split('/');
+                        const songId = parseInt(urlParts[3]);
+                        const queryParams = new URLSearchParams(path.split('?')[1] || '');
+                        const blacklistStr = queryParams.get('blacklist') || '';
+                        const blacklist = blacklistStr.split(',').filter(Boolean);
+                        
+                        const song = allSongs.find(s => s.id === songId);
+                        if (!song) throw new Error('Song not found');
+                        
+                        if (song.youtube_id && !blacklist.includes(song.youtube_id)) {
+                            return { youtube_id: song.youtube_id };
+                        }
+                        
+                        // Search alternative fallbacks
+                        const mockAltId = `dQw4w9WgXcQ`; // Rick roll fallback
+                        return { youtube_id: mockAltId };
+                    }
+                    if (path.startsWith('/api/songs/search')) {
+                        const queryParams = new URLSearchParams(path.split('?')[1] || '');
+                        const q = (queryParams.get('query') || '').toLowerCase();
+                        const matches = allSongs.filter(s => 
+                            s.youtube_id && (
+                                s.title.toLowerCase().includes(q) || 
+                                s.artist.toLowerCase().includes(q) || 
+                                s.genre.toLowerCase().includes(q)
+                            )
+                        );
+                        return matches.slice(0, 30);
+                    }
+                    // Get all songs: /api/songs?limit=50
+                    const playable = allSongs.filter(s => s.youtube_id);
+                    return playable.slice(0, 50);
+                }
+                
+                // DELETE song
+                if (path.startsWith('/api/songs/') && method === 'DELETE') {
+                    const songId = parseInt(path.split('/')[3]);
+                    allSongs = allSongs.filter(s => s.id !== songId);
+                    return { message: 'Song deleted.' };
+                }
+                
+                // 5. GENRES
+                if (path === '/api/genres' && method === 'GET') {
+                    const genres = Array.from(new Set(allSongs.map(s => s.genre)));
+                    return { genres };
+                }
+                
+                // 6. USER PREFERENCES
+                if (path === '/api/users/preferences') {
+                    const tokenParts = authToken.split('_');
+                    const userId = tokenParts[tokenParts.length - 1];
+                    if (method === 'GET') {
+                        const prefs = JSON.parse(localStorage.getItem(`prefs_${userId}`) || '{}');
+                        return prefs;
+                    }
+                    if (method === 'PUT') {
+                        localStorage.setItem(`prefs_${userId}`, JSON.stringify(body));
+                        return { message: 'Preferences updated.' };
+                    }
+                }
+                
+                // 7. RECOMMENDATIONS
+                if (path.startsWith('/api/recommendations')) {
+                    const tokenParts = authToken.split('_');
+                    const userId = tokenParts[tokenParts.length - 1];
+                    
+                    if (path.includes('/trending')) {
+                        const limit = 6;
+                        const songs = allSongs.filter(s => s.youtube_id);
+                        songs.sort((a, b) => b.popularity - a.popularity);
+                        return songs.slice(0, limit);
+                    }
+                    if (path.includes('/for-you')) {
+                        const limit = 6;
+                        const prefs = JSON.parse(localStorage.getItem(`prefs_${userId}`) || '{}');
+                        const preferredGenres = prefs.preferred_genres || [];
+                        if (preferredGenres.length === 0) {
+                            const songs = allSongs.filter(s => s.youtube_id);
+                            songs.sort((a, b) => b.popularity - a.popularity);
+                            return songs.slice(0, limit);
+                        }
+                        const matched = allSongs.filter(s => preferredGenres.includes(s.genre) && s.youtube_id);
+                        // Shuffle matched
+                        const shuffled = [...matched].sort(() => 0.5 - Math.random());
+                        return shuffled.slice(0, limit);
+                    }
+                    if (path.includes('/similar/')) {
+                        const songId = parseInt(path.split('/').pop().split('?')[0]);
+                        const limit = 4;
+                        
+                        const targetSong = allSongs.find(s => s.id === songId);
+                        if (!targetSong) return [];
+                        
+                        const targetVec = normalizeFeatures(targetSong);
+                        const otherSongs = allSongs.filter(s => s.id !== songId && s.youtube_id);
+                        
+                        const scores = otherSongs.map(s => {
+                            const sVec = normalizeFeatures(s);
+                            const score = getCosineSimilarity(targetVec, sVec);
+                            return { ...s, similarity_score: score };
+                        });
+                        
+                        scores.sort((a, b) => b.similarity_score - a.similarity_score);
+                        return scores.slice(0, limit);
+                    }
+                    if (path.includes('/feedback') && method === 'POST') {
+                        const historyKey = `history_${userId}`;
+                        const history = JSON.parse(localStorage.getItem(historyKey) || '[]');
+                        history.push({ song_id: body.song_id, skipped: !!body.skipped, timestamp: Date.now() });
+                        localStorage.setItem(historyKey, JSON.stringify(history));
+                        
+                        if (body.rating) {
+                            const ratingsKey = `ratings_${userId}`;
+                            const ratings = JSON.parse(localStorage.getItem(ratingsKey) || '[]');
+                            const filtered = ratings.filter(r => r.song_id !== body.song_id);
+                            filtered.push({ song_id: body.song_id, rating: body.rating });
+                            localStorage.setItem(ratingsKey, JSON.stringify(filtered));
+                        }
+                        return { message: 'Feedback logged.' };
+                    }
+                    
+                    // Main hybrid recommendations: /api/recommendations?limit=6
+                    const limit = 6;
+                    const historyKey = `history_${userId}`;
+                    const ratingsKey = `ratings_${userId}`;
+                    const history = JSON.parse(localStorage.getItem(historyKey) || '[]');
+                    const ratings = JSON.parse(localStorage.getItem(ratingsKey) || '[]');
+                    const prefs = JSON.parse(localStorage.getItem(`prefs_${userId}`) || '{}');
+                    const preferredGenres = prefs.preferred_genres || [];
+                    
+                    const interactedIds = new Set([
+                        ...history.map(h => h.song_id),
+                        ...ratings.map(r => r.song_id)
+                    ]);
+                    
+                    if (ratings.length < 3 && history.length < 3) {
+                        let recs = [];
+                        if (preferredGenres.length > 0) {
+                            recs = allSongs.filter(s => preferredGenres.includes(s.genre) && !interactedIds.has(s.id) && s.youtube_id);
+                            recs.sort((a, b) => b.popularity - a.popularity);
+                        }
+                        if (recs.length < limit) {
+                            const needed = limit - recs.length;
+                            const excludeIds = new Set([...recs.map(s => s.id), ...interactedIds]);
+                            const trending = allSongs.filter(s => !excludeIds.has(s.id) && s.youtube_id);
+                            trending.sort((a, b) => b.popularity - a.popularity);
+                            recs = recs.concat(trending.slice(0, needed));
+                        }
+                        return recs.slice(0, limit).map(s => ({ ...s, recommendation_score: s.popularity / 100 }));
+                    }
+                    
+                    const likedIds = new Set([
+                        ...ratings.filter(r => r.rating >= 4).map(r => r.song_id),
+                        ...history.filter(h => !h.skipped).map(h => h.song_id)
+                    ]);
+                    
+                    let userProfile = [0.5, 0.5, 0.5, 0.5, 0.5];
+                    if (likedIds.size > 0) {
+                        const vectors = Array.from(likedIds).map(id => {
+                            const s = allSongs.find(song => song.id === id);
+                            return s ? normalizeFeatures(s) : [0.5, 0.5, 0.5, 0.5, 0.5];
+                        });
+                        userProfile = vectors[0].map((_, idx) => vectors.reduce((sum, v) => sum + v[idx], 0) / vectors.length);
+                    }
+                    
+                    const candidates = allSongs.filter(s => !interactedIds.has(s.id) && s.youtube_id);
+                    const scored = candidates.map(s => {
+                        const sVec = normalizeFeatures(s);
+                        const score = getCosineSimilarity(userProfile, sVec);
+                        return { ...s, recommendation_score: score };
+                    });
+                    
+                    scored.sort((a, b) => b.recommendation_score - a.recommendation_score);
+                    return scored.slice(0, limit);
+                }
+                
+                // 8. PLAYLISTS
+                if (path === '/api/playlists') {
+                    const tokenParts = authToken.split('_');
+                    const userId = tokenParts[tokenParts.length - 1];
+                    const playlistsKey = `playlists_${userId}`;
+                    
+                    if (method === 'GET') {
+                        return JSON.parse(localStorage.getItem(playlistsKey) || '[]');
+                    }
+                    if (method === 'POST') {
+                        const playlists = JSON.parse(localStorage.getItem(playlistsKey) || '[]');
+                        const newPlaylist = {
+                            id: Date.now(),
+                            user_id: parseInt(userId),
+                            name: body.name,
+                            description: body.description,
+                            created_at: new Date().toISOString(),
+                            songs: []
+                        };
+                        playlists.push(newPlaylist);
+                        localStorage.setItem(playlistsKey, JSON.stringify(playlists));
+                        return { message: 'Playlist created.', playlist: newPlaylist };
+                    }
+                }
+                if (path.startsWith('/api/playlists/')) {
+                    const tokenParts = authToken.split('_');
+                    const userId = tokenParts[tokenParts.length - 1];
+                    const playlistsKey = `playlists_${userId}`;
+                    const playlists = JSON.parse(localStorage.getItem(playlistsKey) || '[]');
+                    
+                    const parts = path.split('/');
+                    const playlistId = parseInt(parts[3]);
+                    const playlistIndex = playlists.findIndex(p => p.id === playlistId);
+                    if (playlistIndex === -1) throw new Error('Playlist not found');
+                    
+                    if (parts.length === 4 && method === 'GET') {
+                        return playlists[playlistIndex];
+                    }
+                    
+                    if (parts.length === 5 && parts[4].split('?')[0] === 'songs' && method === 'POST') {
+                        const song = allSongs.find(s => s.id === body.song_id);
+                        if (!song) throw new Error('Song not found');
+                        
+                        const playlist = playlists[playlistIndex];
+                        if (playlist.songs.find(s => s.id === song.id)) {
+                            throw new Error('Song already in playlist');
+                        }
+                        
+                        playlist.songs.push(song);
+                        localStorage.setItem(playlistsKey, JSON.stringify(playlists));
+                        return { message: 'Song added to playlist.', playlist };
+                    }
+                }
+                
+                throw new Error(`Mock endpoint not implemented: ${method} ${path}`);
+            } catch (err) {
+                showToast(err.message, true);
+                throw err;
+            }
+        }
+
+        // Authentication flows
+        async function handleLogin() {
+            const email = document.getElementById('login-email').value;
+            const password = document.getElementById('login-password').value;
+
+            if (!email || !password) {
+                showToast('Please fill in login credentials', true);
+                return;
+            }
+
+            try {
+                const res = await apiRequest('/api/auth/login', 'POST', { email, password });
+                authToken = res.access_token;
+                localStorage.setItem('token', authToken);
+                currentUser = res.user;
+                
+                showToast('Login successful!');
+                hideAuthModal();
+                loadDashboardData();
+            } catch (err) {}
+        }
+
+        async function handleRegister() {
+            const username = document.getElementById('reg-username').value;
+            const email = document.getElementById('reg-email').value;
+            const password = document.getElementById('reg-password').value;
+
+            if (!username || !email || !password) {
+                showToast('Please fill in registration credentials', true);
+                return;
+            }
+
+            try {
+                const res = await apiRequest('/api/auth/register', 'POST', { username, email, password });
+                showToast('Account registered successfully! Please log in.');
+                switchAuthTab('login');
+                // Pre-fill email
+                document.getElementById('login-email').value = email;
+            } catch (err) {}
+        }
+
+        async function verifyTokenAndLoadApp() {
+            try {
+                const res = await apiRequest('/api/users/profile', 'GET');
+                currentUser = res;
+                hideAuthModal();
+                loadDashboardData();
+            } catch (err) {
+                // Token invalid or expired
+                localStorage.removeItem('token');
+                authToken = '';
+                showAuthModal();
+            }
+        }
+
+        function handleLogout() {
+            localStorage.removeItem('token');
+            authToken = '';
+            currentUser = null;
+            currentSong = null;
+            isPlaying = false;
+            playbackSource = 'none';
+            if (synthPlayer) {
+                synthPlayer.stop();
+                synthPlayer = null;
+            }
+            if (ytPlayer && ytPlayerReady) {
+                try {
+                    ytPlayer.stopVideo();
+                } catch (e) {}
+            }
+            clearInterval(playerInterval);
+            showAuthModal();
+        }
+
+        // Data loading
+        async function loadDashboardData() {
+            // Update User profiles visual indicators
+            document.getElementById('username-display').innerText = currentUser.username;
+            document.getElementById('welcome-user').innerText = currentUser.username;
+            document.getElementById('avatar-letter').innerText = currentUser.username[0].toUpperCase();
+            
+            // Parallel loaders
+            loadRecommendations();
+            loadCuratedPicks();
+            loadTrending();
+            loadAllSongs();
+            loadPlaylists();
+            loadGenresList();
+        }
+
+        async function loadRecommendations() {
+            try {
+                const container = document.getElementById('rec-songs-grid');
+                container.innerHTML = '<div style="padding: 20px;">Computing hybrid suggestions...</div>';
+                
+                const recs = await apiRequest('/api/recommendations?limit=6', 'GET');
+                renderSongGrid(recs, 'rec-songs-grid', true);
+            } catch (err) {}
+        }
+
+        async function loadCuratedPicks() {
+            try {
+                const recs = await apiRequest('/api/recommendations/for-you?limit=6', 'GET');
+                renderSongGrid(recs, 'curated-songs-grid');
+            } catch (err) {}
+        }
+
+        async function loadTrending() {
+            try {
+                const recs = await apiRequest('/api/recommendations/trending?limit=6', 'GET');
+                renderSongGrid(recs, 'trending-songs-grid');
+            } catch (err) {}
+        }
+
+        async function loadAllSongs() {
+            try {
+                allSongs = await apiRequest('/api/songs?limit=50', 'GET');
+                renderSongGrid(allSongs, 'search-songs-grid');
+                document.getElementById('search-count').innerText = `Showing all ${allSongs.length} tracks`;
+            } catch (err) {}
+        }
+
+        async function loadPlaylists() {
+            try {
+                playlists = await apiRequest('/api/playlists', 'GET');
+                
+                // Render Sidebar playlists list
+                const list = document.getElementById('sidebar-playlists');
+                if (playlists.length === 0) {
+                    list.innerHTML = '<div style="padding: 10px; color: var(--text-muted); font-size: 12px;">No playlists</div>';
+                    return;
+                }
+                
+                list.innerHTML = playlists.map(p => `
+                    <div class="nav-item" style="padding: 8px 14px;" onclick="showPlaylistDetails(${p.id})">
+                        <i class="fa-solid fa-list-music"></i> 
+                        <span style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 150px;">${p.name}</span>
+                    </div>
+                `).join('');
+                
+                // Populate Add-to-Playlist dropdown in player
+                const dropdown = document.getElementById('playlist-dropdown');
+                dropdown.innerHTML = playlists.map(p => `
+                    <div class="dropdown-item" onclick="addCurrentSongToPlaylist(${p.id})">${p.name}</div>
+                `).join('');
+            } catch (err) {}
+        }
+
+        async function loadGenresList() {
+            try {
+                const genresData = await apiRequest('/api/genres', 'GET');
+                const prefsData = await apiRequest('/api/users/preferences', 'GET');
+                activeGenres = prefsData.preferred_genres || [];
+                
+                const container = document.getElementById('genres-selector');
+                container.innerHTML = genresData.genres.map(g => {
+                    const selected = activeGenres.includes(g) ? 'selected' : '';
+                    return `
+                        <div class="genre-badge ${selected}" data-genre="${g}" onclick="toggleGenreBadge(this)">
+                            ${g}
+                        </div>
+                    `;
+                }).join('');
+            } catch (err) {}
+        }
+
+        // Render functions
+        function renderSongGrid(songsList, elementId, showScore = false) {
+            const container = document.getElementById(elementId);
+            const playableSongs = (songsList || []).filter(song => song.youtube_id && song.youtube_id.trim() !== "");
+            if (playableSongs.length === 0) {
+                container.innerHTML = '<div class="empty-state"><i class="fa-solid fa-music"></i><span>No tracks available</span></div>';
+                return;
+            }
+
+            container.innerHTML = playableSongs.map(song => {
+                let scoreText = '';
+                if (showScore && song.recommendation_score !== undefined) {
+                    const pct = Math.round(song.recommendation_score * 100);
+                    scoreText = `<span class="rec-score"><i class="fa-solid fa-sparkles"></i> Match ${pct}%</span>`;
+                }
+
+                let coverHtml = `<i class="fa-solid fa-music song-cover-icon"></i>`;
+                if (song.youtube_id) {
+                    coverHtml = `<img src="https://img.youtube.com/vi/${song.youtube_id}/hqdefault.jpg" alt="Cover" class="song-cover-img">`;
+                }
+
+                return `
+                    <div class="song-card" onclick="selectSong(${JSON.stringify(song).replace(/"/g, '&quot;')})">
+                        <div class="song-cover-container">
+                            ${coverHtml}
+                            <button class="play-overlay-btn" onclick="event.stopPropagation(); playSongDirect(${JSON.stringify(song).replace(/"/g, '&quot;')})">
+                                <i class="fa-solid fa-play"></i>
+                            </button>
+                        </div>
+                        <div class="song-title" title="${song.title}">${song.title}</div>
+                        <div class="song-artist" title="${song.artist}">${song.artist}</div>
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 4px;">
+                            <span class="song-genre-tag">${song.genre}</span>
+                            ${scoreText}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // Song selection & details view
+        async function selectSong(song) {
+            currentSong = song;
+            
+            // Update Right Side detailed view
+            document.getElementById('detail-song-title').innerText = song.title;
+            document.getElementById('detail-song-artist').innerText = song.artist;
+            document.getElementById('detail-song-genre').innerText = song.genre;
+            document.getElementById('detail-song-genre').style.display = 'inline-block';
+            
+            // Update rotating vinyl center label with cover art
+            const vinylCenter = document.querySelector('#vinyl-disc .detail-vinyl-center');
+            if (vinylCenter) {
+                if (song.youtube_id) {
+                    vinylCenter.style.backgroundImage = `url('https://img.youtube.com/vi/${song.youtube_id}/hqdefault.jpg')`;
+                } else {
+                    vinylCenter.style.backgroundImage = 'none';
+                }
+            }
+
+            // Update YouTube links
+            updateYouTubeLinks(song.youtube_id);
+
+            
+            // Audio specs
+            document.getElementById('detail-features-box').style.display = 'flex';
+            document.getElementById('radar-chart-container').style.display = 'flex';
+            document.getElementById('val-tempo').innerText = `${Math.round(song.tempo || 120)} BPM`;
+            document.getElementById('val-energy').innerText = (song.energy || 0).toFixed(2);
+            document.getElementById('val-dance').innerText = (song.danceability || 0).toFixed(2);
+            document.getElementById('val-acoustic').innerText = (song.acousticness || 0).toFixed(2);
+            
+            // Set widths for bars
+            document.getElementById('bar-tempo').style.width = `${((song.tempo || 120) / 200) * 100}%`;
+            document.getElementById('bar-energy').style.width = `${(song.energy || 0) * 100}%`;
+            document.getElementById('bar-dance').style.width = `${(song.danceability || 0) * 100}%`;
+            document.getElementById('bar-acoustic').style.width = `${(song.acousticness || 0) * 100}%`;
+            
+            // Draw & animate radar values
+            updateRadarValues(song);
+            
+            // Fetch similar songs
+            try {
+                const similarList = document.getElementById('detail-similar-list');
+                document.getElementById('detail-similar-section').style.display = 'block';
+                similarList.innerHTML = '<div>Loading similar tracks...</div>';
+                
+                const similar = await apiRequest(`/api/recommendations/similar/${song.id}?limit=4`, 'GET');
+                const playableSimilar = (similar || []).filter(s => s.youtube_id && s.youtube_id.trim() !== "");
+                if (playableSimilar.length === 0) {
+                    similarList.innerHTML = '<div style="font-size: 12px; color: var(--text-muted)">No similar tracks found.</div>';
+                } else {
+                    similarList.innerHTML = playableSimilar.map(s => `
+                        <div class="playlist-row" style="padding: 8px 12px;" onclick="selectSong(${JSON.stringify(s).replace(/"/g, '&quot;')})">
+                            <div style="overflow: hidden; width: 75%;">
+                                <div style="font-size: 13px; font-weight:600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${s.title}</div>
+                                <div style="font-size: 11px; color: var(--text-secondary);">${s.artist}</div>
+                            </div>
+                            <span style="font-size: 10px; color: var(--accent); font-weight:700;">${Math.round((s.similarity_score || 0)*100)}%</span>
+                        </div>
+                    `).join('');
+                }
+            } catch (err) {}
+            
+            // Load playing stats into bottom player
+            updatePlayerInterface(song);
+        }
+
+        // Direct play overlay button
+        function playSongDirect(song) {
+            selectSong(song);
+            startPlayback();
+        }
+
+        // Player interface controller
+        function updatePlayerInterface(song) {
+            document.getElementById('player-song-title').innerText = song.title;
+            document.getElementById('player-song-artist').innerText = song.artist;
+            if (song.youtube_id) {
+                document.getElementById('player-cover-art').innerHTML = `<img src="https://img.youtube.com/vi/${song.youtube_id}/hqdefault.jpg" style="width: 100%; height: 100%; object-fit: cover; border-radius: 4px;">`;
+            } else {
+                document.getElementById('player-cover-art').innerHTML = `<i class="fa-solid fa-record-vinyl fa-spin" style="color: var(--primary); font-size: 24px;"></i>`;
+            }
+            
+            // Stop any existing players immediately
+            if (synthPlayer) {
+                synthPlayer.stop();
+                synthPlayer = null;
+            }
+            if (ytPlayer && ytPlayerReady) {
+                try {
+                    ytPlayer.stopVideo();
+                } catch (e) {}
+            }
+            showYoutubePlayer(false);
+
+            // Check if there is an explicit rating for this song, or reset stars
+            resetStars();
+            
+            // Play state setup
+            playbackProgress = 0;
+            updateProgressBar();
+            
+            // Auto-start play
+            startPlayback();
+        }
+
+        function fallbackToSynth() {
+            playbackSource = 'synth';
+            if (ytPlayer && ytPlayerReady) {
+                try {
+                    ytPlayer.stopVideo();
+                } catch (e) {}
+            }
+            showYoutubePlayer(false);
+            if (!synthPlayer && currentSong) {
+                synthPlayer = new MusicSynth(
+                    currentSong.tempo,
+                    currentSong.energy,
+                    currentSong.danceability,
+                    currentSong.valence,
+                    currentSong.acousticness
+                );
+            }
+            if (synthPlayer) {
+                synthPlayer.start();
+            }
+        }
+
+        async function startPlayback() {
+            if (!currentSong) return;
+            failedIds = [];
+            isPlaying = true;
+            
+            const btn = document.getElementById('play-button');
+            btn.innerHTML = '<i class="fa-solid fa-pause"></i>';
+            btn.classList.add('playing');
+            
+            document.getElementById('vinyl-disc').classList.add('playing');
+            document.getElementById('right-cover-box').classList.add('playing');
+            
+            // Stop any existing synth player
+            if (synthPlayer) {
+                synthPlayer.stop();
+                synthPlayer = null;
+            }
+
+            clearInterval(playerInterval);
+            const songToPlay = currentSong;
+            playbackSource = 'loading';
+
+            try {
+                // Fetch the YouTube ID (either cached or scraped)
+                const res = await apiRequest(`/api/songs/${songToPlay.id}/youtube`, 'GET');
+                
+                // If song changed while fetching, do nothing
+                if (currentSong !== songToPlay) return;
+
+                if (res && res.youtube_id && ytPlayer && ytPlayerReady) {
+                    currentSong.youtube_id = res.youtube_id;
+                    playbackSource = 'youtube';
+                    ytPlayer.loadVideoById(res.youtube_id);
+                    
+                    // Update bottom player cover art thumbnail
+                    document.getElementById('player-cover-art').innerHTML = `<img src="https://img.youtube.com/vi/${res.youtube_id}/hqdefault.jpg" style="width: 100%; height: 100%; object-fit: cover; border-radius: 4px;">`;
+                    
+                    // Show YouTube video player in right cover box
+                    showYoutubePlayer(true);
+
+                    // Update rotating vinyl center label with cover art
+                    const vinylCenter = document.querySelector('#vinyl-disc .detail-vinyl-center');
+                    if (vinylCenter) {
+                        vinylCenter.style.backgroundImage = `url('https://img.youtube.com/vi/${res.youtube_id}/hqdefault.jpg')`;
+                    }
+                    
+                    // Update YouTube link
+                    updateYouTubeLinks(res.youtube_id);
+                } else {
+                    if (currentSong === songToPlay) {
+                        showToast('Updating catalog: loading next track...', false);
+                        try {
+                            await apiRequest(`/api/songs/${currentSong.id}`, 'DELETE');
+                            loadDashboardData();
+                            playRandomTrack();
+                            return;
+                        } catch (e) {
+                            console.error('Failed to delete song:', e);
+                        }
+                    }
+                    fallbackToSynth();
+                }
+            } catch (err) {
+                console.error('Failed to get YouTube ID, falling back to synth:', err);
+                if (currentSong === songToPlay) {
+                    showToast('Updating catalog: loading next track...', false);
+                    try {
+                        await apiRequest(`/api/songs/${currentSong.id}`, 'DELETE');
+                        loadDashboardData();
+                        playRandomTrack();
+                        return;
+                    } catch (e) {
+                        console.error('Failed to delete song after fetch failure:', e);
+                    }
+                    fallbackToSynth();
+                }
+            }
+
+            playerInterval = setInterval(() => {
+                if (!isPlaying) return;
+
+                if (playbackSource === 'youtube') {
+                    try {
+                        const duration = ytPlayer.getDuration();
+                        const currentTime = ytPlayer.getCurrentTime();
+                        if (duration > 0) {
+                            playbackProgress = (currentTime / duration) * 100;
+                            updateProgressBar();
+                        }
+                    } catch (e) {
+                        console.error('Error tracking YouTube progress:', e);
+                    }
+                } else if (playbackSource === 'synth') {
+                    if (playbackProgress < 100) {
+                        const duration = currentSong ? currentSong.duration : 180;
+                        playbackProgress += (0.5 / duration) * 100; // interval is 500ms
+                        if (playbackProgress > 100) playbackProgress = 100;
+                        updateProgressBar();
+                    } else {
+                        playbackProgress = 0;
+                        handleSongFinish();
+                    }
+                }
+            }, 500);
+        }
+
+        function togglePlay() {
+            if (!currentSong) return;
+            
+            if (isPlaying) {
+                // Pause
+                isPlaying = false;
+                document.getElementById('play-button').innerHTML = '<i class="fa-solid fa-play"></i>';
+                document.getElementById('play-button').classList.remove('playing');
+                document.getElementById('vinyl-disc').classList.remove('playing');
+                document.getElementById('right-cover-box').classList.remove('playing');
+                
+                if (playbackSource === 'youtube' && ytPlayer && ytPlayerReady) {
+                    try {
+                        ytPlayer.pauseVideo();
+                    } catch (e) {}
+                } else if (playbackSource === 'synth' && synthPlayer) {
+                    synthPlayer.stop();
+                }
+                clearInterval(playerInterval);
+            } else {
+                // Resume
+                isPlaying = true;
+                document.getElementById('play-button').innerHTML = '<i class="fa-solid fa-pause"></i>';
+                document.getElementById('play-button').classList.add('playing');
+                document.getElementById('vinyl-disc').classList.add('playing');
+                document.getElementById('right-cover-box').classList.add('playing');
+
+                if (playbackSource === 'youtube' && ytPlayer && ytPlayerReady) {
+                    try {
+                        ytPlayer.playVideo();
+                    } catch (e) {}
+                } else if (playbackSource === 'synth') {
+                    if (!synthPlayer && currentSong) {
+                        synthPlayer = new MusicSynth(
+                            currentSong.tempo,
+                            currentSong.energy,
+                            currentSong.danceability,
+                            currentSong.valence,
+                            currentSong.acousticness
+                        );
+                    }
+                    if (synthPlayer) {
+                        synthPlayer.start();
+                    }
+                } else {
+                    startPlayback();
+                    return;
+                }
+
+                clearInterval(playerInterval);
+                playerInterval = setInterval(() => {
+                    if (!isPlaying) return;
+
+                    if (playbackSource === 'youtube') {
+                        try {
+                            const duration = ytPlayer.getDuration();
+                            const currentTime = ytPlayer.getCurrentTime();
+                            if (duration > 0) {
+                                playbackProgress = (currentTime / duration) * 100;
+                                updateProgressBar();
+                            }
+                        } catch (e) {}
+                    } else if (playbackSource === 'synth') {
+                        if (playbackProgress < 100) {
+                            const duration = currentSong ? currentSong.duration : 180;
+                            playbackProgress += (0.5 / duration) * 100;
+                            if (playbackProgress > 100) playbackProgress = 100;
+                            updateProgressBar();
+                        } else {
+                            playbackProgress = 0;
+                            handleSongFinish();
+                        }
+                    }
+                }, 500);
+            }
+        }
+
+        function updateProgressBar() {
+            const fill = document.getElementById('player-progress-fill');
+            let duration = currentSong ? currentSong.duration : 180;
+            let currentSeconds = 0;
+
+            if (playbackSource === 'youtube' && ytPlayer && ytPlayerReady) {
+                try {
+                    const ytDur = ytPlayer.getDuration();
+                    if (ytDur && !isNaN(ytDur) && ytDur > 0) {
+                        duration = ytDur;
+                    }
+                    const ytTime = ytPlayer.getCurrentTime();
+                    if (ytTime && !isNaN(ytTime)) {
+                        currentSeconds = ytTime;
+                    } else {
+                        currentSeconds = Math.round((playbackProgress / 100) * duration);
+                    }
+                } catch (e) {
+                    currentSeconds = Math.round((playbackProgress / 100) * duration);
+                }
+            } else {
+                currentSeconds = Math.round((playbackProgress / 100) * duration);
+            }
+
+            if (isNaN(currentSeconds) || currentSeconds === undefined || currentSeconds === null) {
+                currentSeconds = 0;
+            }
+            if (isNaN(duration) || duration === undefined || duration === null) {
+                duration = currentSong ? currentSong.duration : 180;
+            }
+
+            fill.style.width = `${playbackProgress}%`;
+            document.getElementById('progress-current').innerText = formatTime(currentSeconds);
+            document.getElementById('progress-total').innerText = formatTime(duration);
+        }
+
+        function formatTime(secs) {
+            if (isNaN(secs) || secs === undefined || secs === null || secs < 0) return "0:00";
+            const m = Math.floor(secs / 60);
+            const s = Math.floor(secs % 60);
+            return `${m}:${s < 10 ? '0' : ''}${s}`;
+        }
+
+        function handleProgressBarClick(e) {
+            if (!currentSong) return;
+            const bar = e.currentTarget;
+            const rect = bar.getBoundingClientRect();
+            const clickPos = (e.clientX - rect.left) / rect.width;
+            playbackProgress = Math.round(clickPos * 100);
+            
+            if (playbackSource === 'youtube' && ytPlayer && ytPlayerReady) {
+                try {
+                    const duration = ytPlayer.getDuration();
+                    if (duration > 0) {
+                        const seekToSec = clickPos * duration;
+                        ytPlayer.seekTo(seekToSec, true);
+                    }
+                } catch (e) {}
+            }
+            updateProgressBar();
+        }
+
+        // Rating systems
+        async function rateCurrentSong(ratingVal) {
+            if (!currentSong) return;
+            
+            try {
+                const res = await apiRequest('/api/recommendations/feedback', 'POST', {
+                    song_id: currentSong.id,
+                    rating: ratingVal
+                });
+                
+                showToast(`Rated ${ratingVal} stars successfully! Re-training recommendation vectors.`);
+                highlightStars(ratingVal);
+                
+                // Reload recommendations to display new matrix outputs
+                setTimeout(() => {
+                    loadRecommendations();
+                }, 1000);
+            } catch (err) {}
+        }
+
+        function highlightStars(ratingVal) {
+            const stars = document.querySelectorAll('#player-stars i');
+            stars.forEach((star, idx) => {
+                if (idx < ratingVal) {
+                    star.className = 'fa-solid fa-star active';
+                } else {
+                    star.className = 'fa-regular fa-star';
+                }
+            });
+        }
+
+        function resetStars() {
+            const stars = document.querySelectorAll('#player-stars i');
+            stars.forEach(star => {
+                star.className = 'fa-regular fa-star';
+            });
+        }
+
+        // Submitting play triggers (negative reinforcement if skipped, positive if completed)
+        async function handleSkip() {
+            if (!currentSong) return;
+            
+            if (synthPlayer) {
+                synthPlayer.stop();
+                synthPlayer = null;
+            }
+            if (ytPlayer && ytPlayerReady) {
+                try {
+                    ytPlayer.stopVideo();
+                } catch (e) {}
+            }
+
+            try {
+                // Skip logs negative listening history
+                await apiRequest('/api/recommendations/feedback', 'POST', {
+                    song_id: currentSong.id,
+                    skipped: true
+                });
+                showToast(`Skipped track. Feedback logged.`);
+                
+                // Play next song in listing as mock action
+                playbackProgress = 0;
+                playRandomTrack();
+                loadRecommendations();
+            } catch (err) {}
+        }
+
+        async function handleSongFinish() {
+            clearInterval(playerInterval);
+            if (synthPlayer) {
+                synthPlayer.stop();
+                synthPlayer = null;
+            }
+            if (ytPlayer && ytPlayerReady) {
+                try {
+                    ytPlayer.stopVideo();
+                } catch (e) {}
+            }
+            if (!currentSong) return;
+            
+            try {
+                // Complete log (skipped: false)
+                await apiRequest('/api/recommendations/feedback', 'POST', {
+                    song_id: currentSong.id,
+                    skipped: false
+                });
+                showToast(`Track completed. Profile vector updated.`);
+                
+                // Play next track
+                playRandomTrack();
+                loadRecommendations();
+            } catch (err) {}
+        }
+
+        function playRandomTrack() {
+            const playableSongs = (allSongs || []).filter(song => song.youtube_id && song.youtube_id.trim() !== "");
+            if (playableSongs.length === 0) return;
+            const rand = playableSongs[Math.floor(Math.random() * playableSongs.length)];
+            selectSong(rand);
+        }
+
+        // Genre preferences controller
+        function toggleGenreBadge(element) {
+            element.classList.toggle('selected');
+        }
+
+        async function savePreferences() {
+            const badges = document.querySelectorAll('#genres-selector .genre-badge.selected');
+            const genresList = Array.from(badges).map(b => b.getAttribute('data-genre'));
+            
+            try {
+                await apiRequest('/api/users/preferences', 'PUT', {
+                    preferred_genres: genresList
+                });
+                showToast('Genre preferences updated successfully!');
+                loadRecommendations();
+            } catch (err) {}
+        }
+
+        // Playlist controllers
+        async function promptCreatePlaylist() {
+            const name = prompt("Enter new playlist name:");
+            if (!name) return;
+            const desc = prompt("Enter playlist description (optional):") || "";
+            
+            try {
+                await apiRequest('/api/playlists', 'POST', { name, description: desc });
+                showToast('Playlist created!');
+                loadPlaylists();
+            } catch (err) {}
+        }
+
+        function togglePlaylistDropdown() {
+            if (!currentSong) return;
+            document.getElementById('playlist-dropdown').classList.toggle('show');
+        }
+
+        // Click outside closes playlist dropdown
+        document.addEventListener('click', (e) => {
+            const drop = document.getElementById('playlist-dropdown');
+            const btn = document.getElementById('playlist-drop-btn');
+            if (drop && !drop.contains(e.target) && e.target !== btn) {
+                drop.classList.remove('show');
+            }
+        });
+
+        async function addCurrentSongToPlaylist(playlistId) {
+            try {
+                await apiRequest(`/api/playlists/${playlistId}/songs`, 'POST', {
+                    song_id: currentSong.id
+                });
+                showToast('Song added to playlist successfully!');
+                document.getElementById('playlist-dropdown').classList.remove('show');
+                loadPlaylists();
+            } catch (err) {}
+        }
+
+        async function showPlaylistDetails(playlistId) {
+            try {
+                const playlist = await apiRequest(`/api/playlists/${playlistId}`, 'GET');
+                showView('playlist');
+                
+                document.getElementById('playlist-detail-name').innerText = playlist.name;
+                document.getElementById('playlist-detail-desc').innerText = playlist.description || 'No description provided.';
+                
+                const tbody = document.getElementById('playlist-songs-rows');
+                const playablePlaylistSongs = (playlist.songs || []).filter(s => s.youtube_id && s.youtube_id.trim() !== "");
+                if (playablePlaylistSongs.length === 0) {
+                    tbody.innerHTML = `<tr><td colspan="6" class="empty-state"><i class="fa-solid fa-music"></i><span>No songs in this playlist. Browse explore catalog to add.</span></td></tr>`;
+                    return;
+                }
+                
+                tbody.innerHTML = playablePlaylistSongs.map((s, idx) => `
+                    <tr style="cursor: pointer;" onclick="selectSong(${JSON.stringify(s).replace(/"/g, '&quot;')})">
+                        <td>${idx + 1}</td>
+                        <td style="font-weight: 600;">${s.title}</td>
+                        <td>${s.artist}</td>
+                        <td>${s.album}</td>
+                        <td><span class="song-genre-tag">${s.genre}</span></td>
+                        <td>
+                            <button class="btn btn-secondary" style="padding: 4px 8px; font-size: 12px;" onclick="event.stopPropagation(); playSongDirect(${JSON.stringify(s).replace(/"/g, '&quot;')})">
+                                <i class="fa-solid fa-play"></i> Play
+                            </button>
+                        </td>
+                    </tr>
+                `).join('');
+            } catch (err) {}
+        }
+
+        // Fuzzy catalog searching
+        async function handleSearch(val) {
+            showView('search');
+            document.getElementById('search-input').value = val;
+            
+            if (!val.trim()) {
+                clearTimeout(searchTimeout);
+                renderSongGrid(allSongs, 'search-songs-grid');
+                document.getElementById('search-count').innerText = `Showing all ${allSongs.length} tracks`;
+                return;
+            }
+            
+            clearTimeout(searchTimeout);
+            searchTimeout = setTimeout(async () => {
+                try {
+                    const res = await apiRequest(`/api/songs/search?query=${encodeURIComponent(val)}&limit=30`, 'GET');
+                    // Only update the grid if the input value hasn't changed since the request started
+                    if (document.getElementById('search-input').value === val) {
+                        renderSongGrid(res, 'search-songs-grid');
+                        document.getElementById('search-count').innerText = `Found ${res.length} matching tracks`;
+                    }
+                } catch (err) {}
+            }, 400);
+        }
+
+        // View tabs switching
+        function showView(viewName) {
+            const targetView = document.getElementById(`view-${viewName}`);
+            if (!targetView) return;
+            
+            const views = document.querySelectorAll('.view-pane');
+            
+            // Remove active nav highlight
+            const navItems = document.querySelectorAll('.nav-item');
+            navItems.forEach(n => n.classList.remove('active'));
+            
+            // Highlight nav if matches menu item
+            const menuItem = document.getElementById(`nav-${viewName}`);
+            if (menuItem) menuItem.classList.add('active');
+            
+            // Find active view
+            let activeView = null;
+            views.forEach(v => {
+                if (v.classList.contains('active')) {
+                    activeView = v;
+                }
+            });
+            
+            if (activeView === targetView) return;
+            
+            if (activeView) {
+                // Fade out current view
+                activeView.classList.remove('show-active');
+                
+                setTimeout(() => {
+                    activeView.classList.remove('active');
+                    activeView.style.display = 'none';
+                    
+                    targetView.style.display = 'block';
+                    targetView.classList.add('active');
+                    targetView.offsetHeight; // trigger reflow
+                    targetView.classList.add('show-active');
+                }, 220);
+            } else {
+                targetView.style.display = 'block';
+                targetView.classList.add('active');
+                targetView.offsetHeight;
+                targetView.classList.add('show-active');
+            }
+        }
+    </script>
+</body>
+</html>
