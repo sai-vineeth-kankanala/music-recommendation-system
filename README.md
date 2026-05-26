@@ -24,14 +24,19 @@ Music streaming platforms struggle to deliver personalized recommendations that 
 
 ## Key Features
 
-- **Personalized Recommendations:** Machine learning-based song suggestions
-- **User Authentication:** Secure JWT-based authentication
-- **Listening History:** Track and analyze user preferences
-- **Collaborative Filtering:** Learn from similar users
-- **Content-Based Filtering:** Match songs by audio features
-- **Real-Time Updates:** Live recommendation adjustments
-- **MySQL Persistence:** Durable data storage
-- **Scalable API:** Handle millions of users
+- **Personalized Recommendations:** Hybrid machine learning-based song suggestions.
+- **User Authentication:** Secure JWT-based session management.
+- **Listening History:** Logs explicit rating and playback feedback (plays/skips).
+- **Collaborative Filtering:** Learns patterns from user interactions.
+- **Content-Based Filtering:** Computes similarity vectors matching tempo, energy, and acoustic profiles.
+- **YouTube Playback Integration:** High-quality direct audio streaming from YouTube.
+- **Autoplay Playback Self-Healing:** Automatic detection of restricted videos with live blacklisting and healing.
+- **Premium Glassmorphic UI:** Aesthetic dark mode, rotating vinyl center label, and YouTube shortcuts.
+- **Standalone Serverless Mode:** A completely independent HTML version running in-browser with local similarity calculations.
+
+## Application UI
+
+![Application UI Verification](media__app_ui_verification.png)
 
 ## Results & Metrics
 
@@ -44,6 +49,14 @@ Music streaming platforms struggle to deliver personalized recommendations that 
 - **Cold-Start Performance:** Handles new users within 24 hours
 
 ## Installation & Setup
+
+### Option 1: Standalone Serverless Access (Zero-Setup)
+
+For quick demonstration or showcase without setting up databases or Python environments:
+1. Open the [music_recommendation_app.html](music_recommendation_app.html) file directly in any modern browser.
+2. Register a mock account, log in, configure preferences, build playlists, and experience in-browser Cosine Similarity recommendation computations.
+
+### Option 2: Full Stack Local Deployment
 
 ```bash
 # Clone repository
@@ -58,16 +71,17 @@ source venv/bin/activate  # On Windows: venv\Scripts\activate
 pip install -r requirements.txt
 
 # Setup database
-mysql -u root -p < database/schema.sql
+# The application uses a local music_rec.db SQLite configuration by default, pre-seeded with 145 resolved YouTube tracks.
+# If you wish to use MySQL, configure your credentials in the environment setup.
 
 # Configure environment
 cp .env.example .env
-# Edit .env with your database credentials and JWT secret
+# Edit .env with your credentials and JWT secret
 
 # Run application
 flask run
 
-# API will be available at http://localhost:5000
+# API and frontend UI will be available at http://localhost:5000
 ```
 
 ## Project Structure
